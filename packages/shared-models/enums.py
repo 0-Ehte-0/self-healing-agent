@@ -1,0 +1,30 @@
+from enum import StrEnum
+
+
+class IncidentState(StrEnum):
+    DETECTED = "DETECTED"
+    TRIAGED = "TRIAGED"
+    DIAGNOSED = "DIAGNOSED"
+    PLANNED = "PLANNED"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
+    APPROVED = "APPROVED"
+    EXECUTING = "EXECUTING"
+    VERIFYING = "VERIFYING"
+    RESOLVED = "RESOLVED"
+    ESCALATED = "ESCALATED"
+    FAILED = "FAILED"
+    ROLLEDBACK = "ROLLEDBACK"
+
+
+class Severity(StrEnum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class RiskLevel(StrEnum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"

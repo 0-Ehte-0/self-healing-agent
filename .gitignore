@@ -1,0 +1,53 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Environment Variables & Local Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Distribution / Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Unit Test & Coverage / Tooling Caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Local Database & Storage Volumes
+postgres_data/
+redis_data/
+chroma_data/
+data/baseline/raw/
+
+# IDEs & Editors
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Operating System Files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+autonomous_cloud_self_healing_agent_plan_v4.md
+project.md
+suggestions.md
