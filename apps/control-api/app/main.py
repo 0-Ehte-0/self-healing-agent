@@ -41,9 +41,12 @@ app.add_middleware(
 # Routes
 app.include_router(health_router, prefix="")
 
+
 def start():
     import uvicorn
+
     uvicorn.run("app.main:app", host="127.0.0.1", port=8088, reload=True)
+
 
 if __name__ == "__main__":
     start()
