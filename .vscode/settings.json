@@ -1,0 +1,11 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/apps/control-api",
+    "${workspaceFolder}/apps/demo-api",
+    "${workspaceFolder}/apps/demo-worker",
+    "${workspaceFolder}/apps/traffic-generator",
+    "${workspaceFolder}/apps/fault-injector",
+    "${workspaceFolder}/packages/shared-models"
+  ]
+}

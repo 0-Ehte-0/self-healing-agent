@@ -68,3 +68,51 @@ services:
       retries: 3
     networks:
       - self-healing-net
+
+  demo-api:
+    build:
+      context: .
+      dockerfile: apps/demo-api/Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/self_healing
+      - REDIS_URL=redis://redis:6379/0
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      - postgres
+      - redis
+
+  demo-worker:
+    build:
+      context: .
+      dockerfile: apps/demo-worker/Dockerfile
+    ports:
+      - "8002:8000"
+      - "9102:9102"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  traffic-generator:
+    build:
+      context: .
+      dockerfile: apps/traffic-generator/Dockerfile
+    environment:
+      - TARGET_API_URL=http://demo-api:8000
+      - RATE_RPS=10.0
+      - RANDOM_SEED=42
+    depends_on:
+      - demo-api
+
+  fault-injector:
+    build:
+      context: .
+      dockerfile: apps/fault-injector/Dockerfile
+    ports:
+      - "8003:8000"
+    environment:
+      - FAULT_INJECTOR_SECRET=injector-secret-token
+      - DEMO_API_URL=http://demo-api:8000
+      - REDIS_URL=redis://redis:6379/0

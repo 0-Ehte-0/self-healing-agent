@@ -1,0 +1,14 @@
+[project]
+name = "demo-worker"
+version = "0.1.0"
+description = "Failure-prone stream worker workload"
+requires-python = ">=3.12"
+dependencies = [
+    "redis>=5.0.4",
+    "pydantic-settings>=2.2.0",
+    "prometheus-client>=0.20.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

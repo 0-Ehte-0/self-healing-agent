@@ -5,6 +5,7 @@ from pydantic import PostgresDsn, RedisDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+#Settings are loaded from .env file and environment variables.
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
