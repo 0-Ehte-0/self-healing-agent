@@ -46,9 +46,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff mypy pytest pytest-asyncio httpx
+          pip install ruff pytest pytest-asyncio httpx
           pip install -e packages/shared-models
           pip install -e apps/control-api
+          pip install -e apps/demo-api
+          pip install -e apps/demo-worker
+          pip install -e apps/traffic-generator
+          pip install -e apps/fault-injector
 
       - name: Run Linting and Formatting Check
         run: |
