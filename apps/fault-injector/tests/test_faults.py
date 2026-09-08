@@ -1,12 +1,13 @@
-import pytest
 from unittest.mock import AsyncMock, patch
-from fault_injector.faults.cpustress import CpuStressFault
-from fault_injector.faults.memorypressure import MemoryPressureFault
-from fault_injector.faults.latency import LatencyFault
-from fault_injector.faults.healthhang import HealthHangFault
-from fault_injector.faults.workerpause import WorkerPauseFault
-from fault_injector.faults.errorrate import ElevatedErrorRateFault
+
+import pytest
 from fault_injector.faults.baddeployment import BadDeploymentFault
+from fault_injector.faults.cpustress import CpuStressFault
+from fault_injector.faults.errorrate import ElevatedErrorRateFault
+from fault_injector.faults.healthhang import HealthHangFault
+from fault_injector.faults.latency import LatencyFault
+from fault_injector.faults.memorypressure import MemoryPressureFault
+from fault_injector.faults.workerpause import WorkerPauseFault
 
 
 @pytest.mark.asyncio

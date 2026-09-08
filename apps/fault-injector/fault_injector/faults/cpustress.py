@@ -1,5 +1,6 @@
 import multiprocessing
 from multiprocessing.synchronize import Event as SyncEvent
+
 from fault_injector.faults.base import BaseFault
 
 

@@ -1,5 +1,6 @@
 import asyncio
 from unittest.mock import AsyncMock, patch
+
 import pytest
 from demo_worker.main import consume_stream_events, handle_event
 

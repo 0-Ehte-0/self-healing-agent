@@ -1,5 +1,6 @@
 import asyncio
 from unittest.mock import AsyncMock, patch
+
 import pytest
 from traffic_generator.main import run_traffic_loop
 

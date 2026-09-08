@@ -1,8 +1,9 @@
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, patch
-from httpx import AsyncClient, ASGITransport
-from fault_injector.main import app, ACTIVE_FAULTS, FAULT_METADATA, FAULT_TIMERS
+
+import pytest
+from fault_injector.main import ACTIVE_FAULTS, FAULT_METADATA, FAULT_TIMERS, app
+from httpx import ASGITransport, AsyncClient
 
 
 @pytest.fixture(autouse=True)

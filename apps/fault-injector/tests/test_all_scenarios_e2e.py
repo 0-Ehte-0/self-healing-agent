@@ -1,12 +1,12 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
 from fault_injector.main import (
-    app,
-    FAULT_REGISTRY,
     ACTIVE_FAULTS,
     FAULT_METADATA,
+    FAULT_REGISTRY,
     FAULT_TIMERS,
+    app,
 )
+from httpx import ASGITransport, AsyncClient
 
 
 @pytest.fixture(autouse=True)

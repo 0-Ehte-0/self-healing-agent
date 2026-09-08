@@ -2,6 +2,7 @@ import asyncio
 import time
 from typing import Any
 
+from fastapi import Depends, FastAPI, HTTPException, status
 from fault_injector.auth import verify_fault_token
 from fault_injector.config import get_settings
 from fault_injector.faults.baddeployment import BadDeploymentFault
@@ -15,7 +16,6 @@ from fault_injector.faults.latency import LatencyFault
 from fault_injector.faults.memorypressure import MemoryPressureFault
 from fault_injector.faults.redisdisconnect import RedisDisconnectFault
 from fault_injector.faults.workerpause import WorkerPauseFault
-from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel
 
 settings = get_settings()

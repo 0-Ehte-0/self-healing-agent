@@ -1,5 +1,5 @@
-from fault_injector.config import get_settings
 from fastapi import Header, HTTPException, status
+from fault_injector.config import get_settings
 
 
 async def verify_fault_token(x_fault_token: str = Header(..., alias="X-Fault-Token")) -> str:
