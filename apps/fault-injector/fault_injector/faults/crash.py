@@ -10,7 +10,9 @@ class ProcessCrashFault(BaseFault):
         self._active = True
         try:
             async with httpx.AsyncClient(base_url=settings.demo_api_url, timeout=2.0) as client:
-                await client.post("/_faults/crash", headers={"X-Fault-Token": settings.fault_injector_secret})
+                await client.post(
+                    "/_faults/crash", headers={"X-Fault-Token": settings.fault_injector_secret}
+                )
         except (httpx.RemoteProtocolError, httpx.ConnectError):
             pass
 

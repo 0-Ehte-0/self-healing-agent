@@ -23,4 +23,3 @@ ACTIVE_DB_CONNECTIONS = Gauge(
     "demo_api_db_connections_active",
     "Active database pool connections",
 )
-

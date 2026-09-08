@@ -34,10 +34,12 @@ FAULT_REGISTRY: dict[str, type[BaseFault]] = {
     "SCN-010": BadDeploymentFault,
 }
 
+
 class FaultRecord(BaseModel):
     scenario_id: str
     injected_at: float
     ttl_seconds: int
+
 
 ACTIVE_FAULTS: dict[str, BaseFault] = {}
 FAULT_TIMERS: dict[str, asyncio.Task] = {}

@@ -9,7 +9,10 @@ from prometheus_client import Gauge, start_http_server
 from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
-logging.basicConfig(level=logging.INFO, format='{"time": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}')
+logging.basicConfig(
+    level=logging.INFO,
+    format='{"time": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}',
+)
 logger = logging.getLogger("demo-worker")
 
 settings = get_settings()

@@ -1,4 +1,4 @@
-#This file contains custom error classes and exception handlers for the FastAPI application.
+# This file contains custom error classes and exception handlers for the FastAPI application.
 
 from typing import Any
 
@@ -12,7 +12,8 @@ class AppError(Exception):
         self.status_code = status_code
         super().__init__(message)
 
-#this handler is used to catch AppError exceptions and return a structured JSON response with the error details and correlation ID.
+
+# this handler is used to catch AppError exceptions and return a structured JSON response with the error details and correlation ID.
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     correlation_id = getattr(request.state, "correlation_id", "unknown")
     return JSONResponse(

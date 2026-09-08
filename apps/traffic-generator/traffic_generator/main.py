@@ -15,7 +15,9 @@ settings = get_settings()
 async def run_traffic_loop() -> None:
     rng = random.Random(settings.random_seed)
     delay = 1.0 / max(settings.rate_rps, 0.1)
-    logger.info(f"Starting traffic to {settings.target_api_url} at {settings.rate_rps} RPS (seed={settings.random_seed})")
+    logger.info(
+        f"Starting traffic to {settings.target_api_url} at {settings.rate_rps} RPS (seed={settings.random_seed})"
+    )
 
     async with httpx.AsyncClient(base_url=settings.target_api_url, timeout=5.0) as client:
         while True:

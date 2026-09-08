@@ -20,15 +20,16 @@ async def cleanup_faults():
 async def test_fault_lifecycle_inject_and_clear():
     headers = {"X-Fault-Token": "injector-secret-token"}
 
-    with patch(
-        "fault_injector.faults.cpustress.CpuStressFault.inject",
-        new_callable=AsyncMock,
-    ) as mock_inject, \
-         patch(
-             "fault_injector.faults.cpustress.CpuStressFault.clear",
-             new_callable=AsyncMock,
-         ) as mock_clear:
-
+    with (
+        patch(
+            "fault_injector.faults.cpustress.CpuStressFault.inject",
+            new_callable=AsyncMock,
+        ) as mock_inject,
+        patch(
+            "fault_injector.faults.cpustress.CpuStressFault.clear",
+            new_callable=AsyncMock,
+        ) as mock_clear,
+    ):
         async with AsyncClient(
             transport=ASGITransport(app=app),
             base_url="http://test",
@@ -60,15 +61,16 @@ async def test_fault_lifecycle_inject_and_clear():
 async def test_fault_auto_expiry():
     headers = {"X-Fault-Token": "injector-secret-token"}
 
-    with patch(
-        "fault_injector.faults.latency.LatencyFault.inject",
-        new_callable=AsyncMock,
-    ), \
-         patch(
-             "fault_injector.faults.latency.LatencyFault.clear",
-             new_callable=AsyncMock,
-         ) as mock_clear:
-
+    with (
+        patch(
+            "fault_injector.faults.latency.LatencyFault.inject",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "fault_injector.faults.latency.LatencyFault.clear",
+            new_callable=AsyncMock,
+        ) as mock_clear,
+    ):
         async with AsyncClient(
             transport=ASGITransport(app=app),
             base_url="http://test",
