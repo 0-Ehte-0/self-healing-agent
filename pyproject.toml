@@ -32,6 +32,7 @@ pythonpath = [
     "apps/demo-worker",
     "apps/traffic-generator",
     "apps/fault-injector",
+    "packages/shared-models",
 ]
 
 [tool.pyrefly]

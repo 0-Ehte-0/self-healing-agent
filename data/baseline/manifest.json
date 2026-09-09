@@ -1,0 +1,26 @@
+{
+  "manifest_version": "2.0",
+  "source": "live_capture",
+  "scenario_id": "BASELINE",
+  "system_status": "HEALTHY",
+  "started_at": "2026-09-09T14:54:43.189647+00:00",
+  "ended_at": "2026-09-09T14:55:43.215643+00:00",
+  "duration_seconds": 60.02599596977234,
+  "sample_interval_seconds": 15,
+  "prometheus_url": "http://localhost:9090",
+  "loki_url": "http://localhost:3100",
+  "files": {
+    "metrics": {
+      "path": "metrics/baseline_metrics.json",
+      "sha256": "a0803642b605379dc13af65e513d59075fb4c0e87c08db6a691ea78101cdb94e",
+      "record_count": 5,
+      "size_bytes": 20947
+    },
+    "logs": {
+      "path": "logs/baseline_logs.jsonl.gz",
+      "sha256": "1cb106a3eb9d31a33a76b20781f03883f79a105c10aa71d31985ea62b18fe854",
+      "record_count": 1587,
+      "size_bytes": 75664
+    }
+  }
+}

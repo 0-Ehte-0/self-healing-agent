@@ -1,0 +1,66 @@
+{
+  "$defs": {
+    "ExecutionStatus": {
+      "enum": [
+        "PENDING",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "ROLLEDBACK"
+      ],
+      "title": "ExecutionStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "incident_id": {
+      "format": "uuid",
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "step_id": {
+      "format": "uuid",
+      "title": "Step Id",
+      "type": "string"
+    },
+    "resource_id": {
+      "format": "uuid",
+      "title": "Resource Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ExecutionStatus"
+    },
+    "actor": {
+      "title": "Actor",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "incident_id",
+    "step_id",
+    "resource_id",
+    "idempotency_key",
+    "status",
+    "actor",
+    "created_at"
+  ],
+  "title": "ExecutionContract",
+  "type": "object"
+}

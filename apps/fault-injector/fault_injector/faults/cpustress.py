@@ -18,7 +18,8 @@ class CpuStressFault(BaseFault):
     async def inject(self) -> None:
         self._stop_event.clear()
         self._processes.clear()
-        num_cores = max(1, multiprocessing.cpu_count())
+        # One CPU is sufficient for the >75%-of-one-core scenario; bound host impact.
+        num_cores = 1
         for _ in range(num_cores):
             p = multiprocessing.Process(target=_cpu_worker, args=(self._stop_event,))
             p.daemon = True

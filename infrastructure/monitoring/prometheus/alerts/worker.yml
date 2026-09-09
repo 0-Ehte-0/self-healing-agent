@@ -1,0 +1,26 @@
+groups:
+  - name: worker.rules
+    rules:
+      - alert: WorkerQueueBacklogHigh
+        expr: demo_worker_queue_depth > 50
+        for: 30s
+        labels:
+          severity: warning
+          tier: worker
+          scenario_id: SCN-008
+        annotations:
+          summary: "Worker job queue depth high"
+          description: "Redis job stream backlog has exceeded 50 messages for > 30s. SCN-008 worker pause detected."
+          runbook_url: "knowledge/runbooks/SCN-008-worker-pause.md"
+
+      - alert: WorkerHeartbeatMissing
+        expr: (time() - demo_worker_heartbeat_seconds) > 15
+        for: 30s
+        labels:
+          severity: critical
+          tier: worker
+          scenario_id: SCN-007
+        annotations:
+          summary: "Worker heartbeat missing"
+          description: "Worker has not emitted a heartbeat for over 15 seconds. Worker process may be stalled or disconnected."
+          runbook_url: "knowledge/runbooks/SCN-007-worker-halt.md"

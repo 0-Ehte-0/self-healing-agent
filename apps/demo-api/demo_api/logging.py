@@ -5,6 +5,7 @@ from contextvars import ContextVar
 from datetime import UTC, datetime, timezone
 
 scenario_id_ctx: ContextVar[str] = ContextVar("scenario_id_ctx", default="")
+correlation_id_ctx: ContextVar[str] = ContextVar("correlation_id_ctx", default="")
 
 
 class StructuredJSONFormatter(logging.Formatter):
@@ -15,6 +16,8 @@ class StructuredJSONFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
             "scenario_id": scenario_id_ctx.get(),
+            "correlation_id": correlation_id_ctx.get(),
+            "service": "demo-api",
         }
         if record.exc_info:
             log_entry["exception"] = self.formatException(record.exc_info)

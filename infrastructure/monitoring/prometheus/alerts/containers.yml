@@ -1,0 +1,38 @@
+groups:
+  - name: containers.rules
+    rules:
+      - alert: ContainerDown
+        expr: up{job=~"demo-api|demo-worker"} == 0
+        for: 15s
+        labels:
+          severity: critical
+          tier: workload
+          scenario_id: SCN-001
+        annotations:
+          summary: "Container {{ $labels.instance }} is down"
+          description: "Service {{ $labels.service }} instance {{ $labels.instance }} has been unreachable for 15s. SCN-001 failure mode detected."
+          runbook_url: "knowledge/runbooks/SCN-001-container-crash.md"
+
+      - alert: HighCpuSaturation
+        expr: rate(fault_injector_cpu_seconds_total[1m]) > 0.75 or rate(process_cpu_seconds_total{job=~"demo-api|demo-worker"}[1m]) > 0.75
+        for: 30s
+        labels:
+          severity: warning
+          tier: workload
+          scenario_id: SCN-002
+        annotations:
+          summary: "High CPU saturation on {{ or $labels.service $labels.name }}"
+          description: "CPU utilization has exceeded 75% for 30s. SCN-002 CPU saturation failure mode detected."
+          runbook_url: "knowledge/runbooks/SCN-002-cpu-saturation.md"
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="fault-injector"} > 230686720
+        for: 30s
+        labels:
+          severity: warning
+          tier: workload
+          scenario_id: SCN-005
+        annotations:
+          summary: "High memory usage detected on {{ or $labels.service $labels.name }}"
+          description: "Memory working set has exceeded 80% or 256MB threshold for 30s. SCN-005 memory pressure detected."
+          runbook_url: "knowledge/runbooks/SCN-005-memory-pressure.md"

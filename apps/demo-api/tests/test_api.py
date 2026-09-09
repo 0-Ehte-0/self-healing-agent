@@ -61,3 +61,48 @@ async def test_jobs_creation_flow():
             assert res.headers.get("X-Scenario-ID") == "SCN-000"
             mock_db.add.assert_called_once()
             mock_redis.xadd.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_health_live_fault_bad_deployment():
+    mock_redis = AsyncMock()
+    mock_redis.get.return_value = "true"
+    app.dependency_overrides[get_redis] = lambda: mock_redis
+
+    with patch("demo_api.main.redis_client", mock_redis):
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+        ) as ac:
+            res = await ac.get("/health/live")
+            assert res.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_health_ready_ok_and_metrics_exposed():
+    mock_db = AsyncMock()
+    mock_redis = AsyncMock()
+    mock_redis.get.return_value = None
+    mock_redis.ping.return_value = True
+
+    async def override_get_db():
+        yield mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_redis] = lambda: mock_redis
+
+    with patch("demo_api.main.redis_client", mock_redis):
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+        ) as ac:
+            ready_res = await ac.get("/health/ready")
+            assert ready_res.status_code == 200
+            assert ready_res.json()["ready"] is True
+
+            metrics_res = await ac.get("/metrics")
+            assert metrics_res.status_code == 200
+            body = metrics_res.text
+            assert "demo_api_health_live_status" in body
+            assert "demo_api_health_ready_status" in body
+            assert "demo_api_redis_connected" in body

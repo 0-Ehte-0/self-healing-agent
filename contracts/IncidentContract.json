@@ -1,0 +1,88 @@
+{
+  "$defs": {
+    "IncidentState": {
+      "enum": [
+        "DETECTED",
+        "TRIAGED",
+        "DIAGNOSED",
+        "PLANNED",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "EXECUTING",
+        "VERIFYING",
+        "RESOLVED",
+        "ESCALATED",
+        "FAILED",
+        "ROLLEDBACK"
+      ],
+      "title": "IncidentState",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "resource_id": {
+      "format": "uuid",
+      "title": "Resource Id",
+      "type": "string"
+    },
+    "correlation_key": {
+      "title": "Correlation Key",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/IncidentState"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity"
+    },
+    "version": {
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "attempts": {
+      "minimum": 0,
+      "title": "Attempts",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "resource_id",
+    "correlation_key",
+    "state",
+    "severity",
+    "version",
+    "attempts",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "IncidentContract",
+  "type": "object"
+}

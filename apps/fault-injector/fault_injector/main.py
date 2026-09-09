@@ -1,8 +1,10 @@
 import asyncio
+import os
 import time
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, status
+import psutil
+from fastapi import Depends, FastAPI, HTTPException, Response, status
 from fault_injector.auth import verify_fault_token
 from fault_injector.config import get_settings
 from fault_injector.faults.baddeployment import BadDeploymentFault
@@ -16,10 +18,35 @@ from fault_injector.faults.latency import LatencyFault
 from fault_injector.faults.memorypressure import MemoryPressureFault
 from fault_injector.faults.redisdisconnect import RedisDisconnectFault
 from fault_injector.faults.workerpause import WorkerPauseFault
+from prometheus_client import CONTENT_TYPE_LATEST, Gauge, generate_latest
 from pydantic import BaseModel
 
 settings = get_settings()
 app = FastAPI(title="fault-injector")
+CPU_SECONDS = Gauge(
+    "fault_injector_cpu_seconds_total", "CPU seconds including fault child processes"
+)
+DB_CONNECTIONS = Gauge(
+    "fault_injector_db_connections_active", "Actual connections held by the database leak scenario"
+)
+
+
+@app.get("/metrics")
+async def metrics() -> Response:
+    process = psutil.Process(os.getpid())
+    times = process.cpu_times()
+    cpu = times.user + times.system
+    for child in process.children(recursive=True):
+        try:
+            child_times = child.cpu_times()
+            cpu += child_times.user + child_times.system
+        except psutil.NoSuchProcess:
+            pass
+    CPU_SECONDS.set(cpu)
+    fault = ACTIVE_FAULTS.get("SCN-006")
+    DB_CONNECTIONS.set(len(fault._connections) if isinstance(fault, DbConnectionLeakFault) else 0)
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 
 FAULT_REGISTRY: dict[str, type[BaseFault]] = {
     "SCN-001": ProcessCrashFault,

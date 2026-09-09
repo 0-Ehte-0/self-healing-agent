@@ -23,3 +23,21 @@ ACTIVE_DB_CONNECTIONS = Gauge(
     "demo_api_db_connections_active",
     "Active database pool connections",
 )
+
+# Tracks application liveness status (1 = healthy/live, 0 = unhealthy/failed).
+HEALTH_LIVE_STATUS = Gauge(
+    "demo_api_health_live_status",
+    "Application liveness status",
+)
+
+# Tracks application readiness status (1 = ready, 0 = unready).
+HEALTH_READY_STATUS = Gauge(
+    "demo_api_health_ready_status",
+    "Application readiness status",
+)
+
+# Tracks Redis connectivity from demo-api (1 = connected, 0 = unreachable).
+REDIS_CONNECTED = Gauge(
+    "demo_api_redis_connected",
+    "Redis connection status",
+)

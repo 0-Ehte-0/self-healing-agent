@@ -1,0 +1,29 @@
+global:
+  resolve_timeout: 1m
+
+route:
+  group_by: ["alertname", "scenario_id", "service", "job"]
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: "control-plane-webhook"
+  routes:
+    - match_re:
+        alertname: ".*"
+      receiver: "control-plane-webhook"
+
+receivers:
+  - name: "control-plane-webhook"
+    webhook_configs:
+      - url: "http://control-plane:8000/api/v1/webhooks/alertmanager"
+        send_resolved: true
+        max_alerts: 50
+        http_config:
+          bearer_token: "alertmanager-secret-token"
+
+inhibit_rules:
+  - source_match:
+      alertname: "ContainerDown"
+    target_match_re:
+      alertname: "ApiUnresponsive|HighHttpErrorRate|ApiHighLatency"
+    equal: ["scenario_id"]

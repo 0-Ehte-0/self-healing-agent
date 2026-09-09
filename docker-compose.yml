@@ -1,5 +1,3 @@
-version: "3.8"
-
 networks:
   self-healing-net:
     name: self-healing-net
@@ -9,9 +7,20 @@ volumes:
   postgres_data:
   redis_data:
   chroma_data:
+  prometheus_data:
+  grafana_data:
+  fluentbit_data:
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+    labels: "com.docker.compose.project,com.docker.compose.service"
 
 services:
   postgres:
+    logging: *default-logging
     image: postgres:16-alpine
     container_name: self-healing-postgres
     restart: unless-stopped
@@ -33,6 +42,7 @@ services:
       - self-healing-net
 
   redis:
+    logging: *default-logging
     image: redis:7-alpine
     container_name: self-healing-redis
     restart: unless-stopped
@@ -50,6 +60,7 @@ services:
       - self-healing-net
 
   chromadb:
+    logging: *default-logging
     image: chromadb/chroma:0.5.0
     container_name: self-healing-chroma
     restart: unless-stopped
@@ -69,24 +80,59 @@ services:
     networks:
       - self-healing-net
 
+  control-plane:
+    build:
+      context: .
+      dockerfile: apps/control-api/Dockerfile
+    container_name: self-healing-control-plane
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "8088:8000"
+    environment:
+      - PROJECT_NAME=control-plane
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=control_plane
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - DATABASE_URL=postgresql+asyncpg://control_app:local-control-app@postgres:5432/control_plane
+      - MIGRATION_DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/control_plane
+      - CONTROL_APP_PASSWORD=local-control-app
+    depends_on:
+      - postgres
+      - redis
+      - chromadb
+    networks:
+      - self-healing-net
+
   demo-api:
     build:
       context: .
       dockerfile: apps/demo-api/Dockerfile
+    container_name: self-healing-demo-api
+    logging: *default-logging
     ports:
       - "8001:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/self_healing
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/demo
       - REDIS_URL=redis://redis:6379/0
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       - postgres
       - redis
+    networks:
+      - self-healing-net
 
   demo-worker:
     build:
       context: .
       dockerfile: apps/demo-worker/Dockerfile
+    container_name: self-healing-demo-worker
+    logging: *default-logging
     ports:
       - "8002:8000"
       - "9102:9102"
@@ -94,25 +140,191 @@ services:
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       - redis
+    networks:
+      - self-healing-net
 
   traffic-generator:
     build:
       context: .
       dockerfile: apps/traffic-generator/Dockerfile
+    container_name: self-healing-traffic-generator
+    logging: *default-logging
     environment:
       - TARGET_API_URL=http://demo-api:8000
       - RATE_RPS=10.0
       - RANDOM_SEED=42
     depends_on:
       - demo-api
+    networks:
+      - self-healing-net
 
   fault-injector:
     build:
       context: .
       dockerfile: apps/fault-injector/Dockerfile
+    container_name: self-healing-fault-injector
+    logging: *default-logging
     ports:
       - "8003:8000"
     environment:
       - FAULT_INJECTOR_SECRET=injector-secret-token
       - DEMO_API_URL=http://demo-api:8000
       - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/demo
+    networks:
+      - self-healing-net
+
+  prometheus:
+    logging: *default-logging
+    image: prom/prometheus:v2.51.0
+    container_name: self-healing-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/monitoring/prometheus/alerts:/etc/prometheus/alerts:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    networks:
+      - self-healing-net
+
+  alertmanager:
+    logging: *default-logging
+    image: prom/alertmanager:v0.27.0
+    container_name: self-healing-alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./infrastructure/monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    networks:
+      - self-healing-net
+
+  loki:
+    logging: *default-logging
+    image: grafana/loki:3.0.0
+    container_name: self-healing-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./infrastructure/monitoring/loki/config.yaml:/etc/loki/local-config.yaml:ro
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+    networks:
+      - self-healing-net
+
+  fluentbit:
+    logging: *default-logging
+    image: fluent/fluent-bit:3.0.4
+    container_name: self-healing-fluentbit
+    restart: unless-stopped
+    environment:
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-self-healing-agent}
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+      - "2020:2020"
+    volumes:
+      - ./infrastructure/monitoring/fluentbit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./infrastructure/monitoring/fluentbit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - ./infrastructure/monitoring/fluentbit/normalize.lua:/fluent-bit/etc/normalize.lua:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - fluentbit_data:/fluent-bit/state
+    networks:
+      - self-healing-net
+
+  otel-collector:
+    logging: *default-logging
+    image: otel/opentelemetry-collector-contrib:0.98.0
+    container_name: self-healing-otel-collector
+    restart: unless-stopped
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+    volumes:
+      - ./infrastructure/monitoring/otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    networks:
+      - self-healing-net
+
+  jaeger:
+    logging: *default-logging
+    image: jaegertracing/all-in-one:1.56
+    container_name: self-healing-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - self-healing-net
+
+  grafana:
+    logging: *default-logging
+    image: grafana/grafana:10.4.2
+    container_name: self-healing-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infrastructure/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - self-healing-net
+
+  node-exporter:
+    logging: *default-logging
+    image: prom/node-exporter:v1.7.0
+    container_name: self-healing-node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    command: ["--path.rootfs=/host"]
+    volumes:
+      - /:/host:ro
+    networks:
+      - self-healing-net
+
+  cadvisor:
+    logging: *default-logging
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: self-healing-cadvisor
+    restart: unless-stopped
+    ports:
+      - "8085:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - self-healing-net
+
+  blackbox:
+    image: prom/blackbox-exporter:v0.25.0
+    logging: *default-logging
+    restart: unless-stopped
+    volumes:
+      - ./infrastructure/monitoring/blackbox/config.yml:/etc/blackbox_exporter/config.yml:ro
+    networks:
+      - self-healing-net

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import signal
 import time
@@ -8,10 +9,13 @@ from contextlib import asynccontextmanager
 
 from demo_api.config import get_settings
 from demo_api.db import JobRecord, get_db, init_db
-from demo_api.logging import configure_logging, scenario_id_ctx
+from demo_api.logging import configure_logging, correlation_id_ctx, scenario_id_ctx
 from demo_api.metrics import (
+    HEALTH_LIVE_STATUS,
+    HEALTH_READY_STATUS,
     HTTP_REQUEST_DURATION_SECONDS,
     HTTP_REQUESTS_TOTAL,
+    REDIS_CONNECTED,
 )
 from demo_api.redis import get_redis, redis_client
 from demo_api.telemetry import setup_telemetry
@@ -26,12 +30,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 settings = get_settings()
 configure_logging()
 
+HEALTH_LIVE_STATUS.set(1)
+HEALTH_READY_STATUS.set(1)
+REDIS_CONNECTED.set(1)
+
+
+async def monitor_redis() -> None:
+    """Measure connectivity independently of request paths and their injected hangs."""
+    while True:
+        try:
+            await asyncio.wait_for(redis_client.ping(), timeout=1.0)
+            REDIS_CONNECTED.set(1)
+        except Exception:
+            REDIS_CONNECTED.set(0)
+        await asyncio.sleep(2)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await init_db()
-    yield
-    await redis_client.aclose()
+    HEALTH_LIVE_STATUS.set(1)
+    HEALTH_READY_STATUS.set(1)
+    REDIS_CONNECTED.set(1)
+    monitor = asyncio.create_task(monitor_redis())
+    try:
+        yield
+    finally:
+        monitor.cancel()
+        await asyncio.gather(monitor, return_exceptions=True)
+        await redis_client.aclose()
 
 
 app = FastAPI(title="demo-api", lifespan=lifespan)
@@ -43,17 +70,20 @@ async def telemetry_middleware(request: Request, call_next):
     start_time = time.perf_counter()
 
     # 1. Resolve scenario_id first to prevent UnboundLocalError
-    scenario_id = request.headers.get("X-Scenario-ID", "")
+    scenario_id = request.headers.get("X-Scenario-ID", "BASELINE")
     token = scenario_id_ctx.set(scenario_id)
+    correlation_id = request.headers.get("X-Correlation-ID") or "none"
+    correlation_token = correlation_id_ctx.set(correlation_id)
 
     # 2. Enrich active OpenTelemetry trace span
     current_span = trace.get_current_span()
     if current_span and current_span.is_recording():
         current_span.set_attribute("scenario_id", scenario_id)
+        current_span.set_attribute("correlation_id", correlation_id)
 
     # 3. Handle simulated latency injection (SCN-004)
     try:
-        latency_val = await redis_client.get("fault:latency")
+        latency_val = await asyncio.wait_for(redis_client.get("fault:latency"), timeout=1.0)
         if latency_val:
             await asyncio.sleep(float(latency_val))
     except Exception:
@@ -64,6 +94,7 @@ async def telemetry_middleware(request: Request, call_next):
     try:
         response = await call_next(request)
         status_code = response.status_code
+        response.headers["X-Correlation-ID"] = correlation_id
         if scenario_id:
             response.headers["X-Scenario-ID"] = scenario_id
         return response
@@ -83,16 +114,22 @@ async def telemetry_middleware(request: Request, call_next):
             endpoint=path,
             scenario_id=scenario_id,
         ).observe(duration)
+        logging.getLogger("demo-api").info(
+            "%s %s status=%s duration=%.3f", request.method, path, status_code, duration
+        )
         scenario_id_ctx.reset(token)
+        correlation_id_ctx.reset(correlation_token)
 
 
 @app.get("/health/live")
 async def health_live(redis: Redis = Depends(get_redis)) -> dict[str, str]:
     if await redis.get("fault:bad_deployment"):
+        HEALTH_LIVE_STATUS.set(0)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Deployment configuration invalid",
         )
+    HEALTH_LIVE_STATUS.set(1)
     return {"status": "ok"}
 
 
@@ -102,12 +139,14 @@ async def health_ready(
     redis: Redis = Depends(get_redis),
 ) -> dict[str, object]:
     if await redis.get("fault:bad_deployment"):
+        HEALTH_READY_STATUS.set(0)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Deployment configuration invalid",
         )
 
     if await redis.get("fault:health_hang"):
+        HEALTH_READY_STATUS.set(0)
         await asyncio.sleep(60.0)
 
     db_ok = False
@@ -124,7 +163,10 @@ async def health_ready(
     except Exception:
         redis_ok = False
 
+    REDIS_CONNECTED.set(1 if redis_ok else 0)
+
     ready = db_ok and redis_ok
+    HEALTH_READY_STATUS.set(1 if ready else 0)
     if not ready:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -167,7 +209,15 @@ async def create_job(
     await db.commit()
 
     # Stream dispatch to Redis
-    await redis.xadd("demo:jobs", {"job_id": job_uuid, "payload": req.payload})
+    await redis.xadd(
+        "demo:jobs",
+        {
+            "job_id": job_uuid,
+            "payload": req.payload,
+            "scenario_id": scenario_id_ctx.get(),
+            "correlation_id": correlation_id_ctx.get(),
+        },
+    )
 
     return JobCreateResponse(job_id=job_uuid, status="QUEUED")
 

@@ -1,0 +1,273 @@
+"""PostgreSQL system of record. JSON columns hold versioned, bounded domain payloads."""
+
+from datetime import datetime
+from typing import Any
+from uuid import UUID, uuid4
+
+import sqlalchemy as sa
+from app.db.base import Base
+from sharedmodels.enums import (
+    EventSource,
+    ExecutionStatus,
+    IncidentState,
+    RiskLevel,
+    Severity,
+    UserRole,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+
+def enum(cls: type, name: str) -> sa.Enum:
+    return sa.Enum(cls, name=name, values_callable=lambda values: [v.value for v in values])
+
+
+class Record:
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    created_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+
+
+class Resource(Record, Base):
+    __tablename__ = "resources"
+    provider: Mapped[str] = mapped_column(sa.String(32))
+    external_id: Mapped[str] = mapped_column(sa.String(512))
+    name: Mapped[str] = mapped_column(sa.String(128))
+    environment: Mapped[str] = mapped_column(sa.String(32), default="local")
+    labels: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    managed: Mapped[bool] = mapped_column(default=False)
+    __table_args__ = (sa.UniqueConstraint("provider", "external_id"),)
+
+
+class User(Record, Base):
+    __tablename__ = "users"
+    username: Mapped[str] = mapped_column(sa.String(128), unique=True)
+    password_hash: Mapped[str] = mapped_column(sa.String(512))
+    role: Mapped[UserRole] = mapped_column(enum(UserRole, "user_role"))
+    enabled: Mapped[bool] = mapped_column(default=True)
+
+
+class Event(Record, Base):
+    __tablename__ = "events"
+    resource_id: Mapped[UUID] = mapped_column(sa.ForeignKey("resources.id"), index=True)
+    source: Mapped[EventSource] = mapped_column(enum(EventSource, "event_source"))
+    fingerprint: Mapped[str] = mapped_column(sa.String(64))
+    dedup_window: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    occurred_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    severity: Mapped[Severity] = mapped_column(enum(Severity, "severity"))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    raw_payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "source", "resource_id", "fingerprint", "dedup_window", name="uq_event_dedup"
+        ),
+    )
+
+
+class Incident(Record, Base):
+    __tablename__ = "incidents"
+    resource_id: Mapped[UUID] = mapped_column(sa.ForeignKey("resources.id"), index=True)
+    correlation_key: Mapped[str] = mapped_column(sa.String(256), index=True)
+    state: Mapped[IncidentState] = mapped_column(
+        enum(IncidentState, "incident_state"), default=IncidentState.DETECTED
+    )
+    severity: Mapped[Severity] = mapped_column(enum(Severity, "severity"))
+    version: Mapped[int] = mapped_column(default=1)
+    attempts: Mapped[int] = mapped_column(default=0)
+    retry_limit: Mapped[int] = mapped_column(default=2)
+    approval_required: Mapped[bool] = mapped_column(default=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
+    __table_args__ = (
+        sa.CheckConstraint("version >= 1 AND attempts >= 0 AND retry_limit >= 0"),
+        sa.Index(
+            "uq_active_incident",
+            "correlation_key",
+            unique=True,
+            postgresql_where=sa.text("state NOT IN ('RESOLVED', 'ESCALATED', 'ROLLEDBACK')"),
+        ),
+    )
+
+
+class IncidentEvent(Base):
+    __tablename__ = "incident_events"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), primary_key=True)
+    event_id: Mapped[UUID] = mapped_column(sa.ForeignKey("events.id"), primary_key=True)
+    linked_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+
+
+class EvidenceItem(Record, Base):
+    __tablename__ = "evidence_items"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    kind: Mapped[str] = mapped_column(sa.String(32))
+    source: Mapped[str] = mapped_column(sa.String(512))
+    observed_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    content: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    sha256: Mapped[str] = mapped_column(sa.String(64))
+    actor: Mapped[str] = mapped_column(sa.String(128))
+
+
+class Diagnosis(Record, Base):
+    __tablename__ = "diagnoses"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    root_cause: Mapped[str] = mapped_column(sa.String(128))
+    confidence: Mapped[float]
+    evidence_ids: Mapped[list[str]] = mapped_column(JSONB)
+    reasoning: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    __table_args__ = (sa.CheckConstraint("confidence BETWEEN 0 AND 1"),)
+
+
+class RemediationPlan(Record, Base):
+    __tablename__ = "remediation_plans"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    diagnosis_id: Mapped[UUID] = mapped_column(sa.ForeignKey("diagnoses.id"))
+    version: Mapped[int]
+    risk: Mapped[RiskLevel] = mapped_column(enum(RiskLevel, "risk_level"))
+    approved: Mapped[bool] = mapped_column(default=False)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    __table_args__ = (
+        sa.UniqueConstraint("incident_id", "version"),
+        sa.UniqueConstraint("id", "version", name="uq_plan_id_version"),
+        sa.CheckConstraint("version >= 1"),
+    )
+
+
+class RemediationStep(Record, Base):
+    __tablename__ = "remediation_steps"
+    plan_id: Mapped[UUID] = mapped_column(sa.ForeignKey("remediation_plans.id"), index=True)
+    resource_id: Mapped[UUID] = mapped_column(sa.ForeignKey("resources.id"))
+    position: Mapped[int]
+    action: Mapped[str] = mapped_column(sa.String(128))
+    parameters: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    verification: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    __table_args__ = (
+        sa.UniqueConstraint("plan_id", "position"),
+        sa.CheckConstraint("position >= 0"),
+    )
+
+
+class Execution(Record, Base):
+    __tablename__ = "executions"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    step_id: Mapped[UUID] = mapped_column(sa.ForeignKey("remediation_steps.id"))
+    resource_id: Mapped[UUID] = mapped_column(sa.ForeignKey("resources.id"))
+    idempotency_key: Mapped[str] = mapped_column(sa.String(256), unique=True)
+    status: Mapped[ExecutionStatus] = mapped_column(
+        enum(ExecutionStatus, "execution_status"), default=ExecutionStatus.PENDING
+    )
+    version: Mapped[int] = mapped_column(default=1)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    pre_state: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    result: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    started_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
+    __table_args__ = (sa.CheckConstraint("version >= 1"),)
+
+
+class VerificationResult(Record, Base):
+    __tablename__ = "verification_results"
+    execution_id: Mapped[UUID] = mapped_column(sa.ForeignKey("executions.id"), index=True)
+    passed: Mapped[bool]
+    window_start: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    window_end: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    health_score: Mapped[float]
+    checks: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    __table_args__ = (
+        sa.CheckConstraint("health_score BETWEEN 0 AND 1 AND window_end >= window_start"),
+    )
+
+
+class Policy(Record, Base):
+    __tablename__ = "policies"
+    name: Mapped[str] = mapped_column(sa.String(128))
+    version: Mapped[int]
+    environment: Mapped[str] = mapped_column(sa.String(32))
+    action: Mapped[str] = mapped_column(sa.String(128))
+    risk: Mapped[RiskLevel] = mapped_column(enum(RiskLevel, "risk_level"))
+    rules: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    enabled: Mapped[bool] = mapped_column(default=True)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    __table_args__ = (sa.UniqueConstraint("name", "version"), sa.CheckConstraint("version >= 1"))
+
+
+class Approval(Record, Base):
+    __tablename__ = "approvals"
+    plan_id: Mapped[UUID] = mapped_column(sa.ForeignKey("remediation_plans.id"), index=True)
+    plan_version: Mapped[int]
+    approver_id: Mapped[UUID] = mapped_column(sa.ForeignKey("users.id"))
+    decision: Mapped[str] = mapped_column(sa.String(16))
+    rejection_reason: Mapped[str | None] = mapped_column(sa.Text)
+    expires_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["plan_id", "plan_version"],
+            ["remediation_plans.id", "remediation_plans.version"],
+            name="fk_approval_plan_version",
+        ),
+        sa.CheckConstraint("decision IN ('APPROVE', 'REJECT')"),
+        sa.CheckConstraint(
+            "decision != 'REJECT' OR length(trim(rejection_reason)) > 0 AND rejection_reason IS NOT NULL"
+        ),
+        sa.CheckConstraint("plan_version >= 1 AND expires_at > created_at"),
+    )
+
+
+class AuditEntry(Record, Base):
+    __tablename__ = "audit_entries"
+    sequence: Mapped[int] = mapped_column(sa.BigInteger, sa.Identity(), unique=True)
+    incident_id: Mapped[UUID | None] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    operation: Mapped[str] = mapped_column(sa.String(128))
+    entity_type: Mapped[str] = mapped_column(sa.String(64))
+    entity_id: Mapped[UUID]
+    details: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
+class ResourceLock(Base):
+    __tablename__ = "resource_locks"
+    resource_id: Mapped[UUID] = mapped_column(sa.ForeignKey("resources.id"), primary_key=True)
+    owner: Mapped[str] = mapped_column(sa.String(128))
+    token: Mapped[UUID] = mapped_column(default=uuid4, unique=True)
+    acquired_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+    expires_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    __table_args__ = (sa.CheckConstraint("expires_at > acquired_at"),)
+
+
+class ModelInvocation(Record, Base):
+    __tablename__ = "model_invocations"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    provider: Mapped[str] = mapped_column(sa.String(64))
+    model: Mapped[str] = mapped_column(sa.String(128))
+    prompt_version: Mapped[str] = mapped_column(sa.String(128))
+    request: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    response: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    latency_ms: Mapped[int]
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    __table_args__ = (sa.CheckConstraint("latency_ms >= 0"),)
+
+
+class AnomalyScore(Record, Base):
+    __tablename__ = "anomaly_scores"
+    resource_id: Mapped[UUID] = mapped_column(sa.ForeignKey("resources.id"), index=True)
+    incident_id: Mapped[UUID | None] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    model_version: Mapped[str] = mapped_column(sa.String(128))
+    window_start: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    window_end: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    score: Mapped[float]
+    anomalous: Mapped[bool]
+    features: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    __table_args__ = (
+        sa.UniqueConstraint("resource_id", "model_version", "window_start", "window_end"),
+        sa.CheckConstraint("window_end > window_start"),
+    )

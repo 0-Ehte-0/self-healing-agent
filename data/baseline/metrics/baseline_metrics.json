@@ -1,0 +1,897 @@
+{
+  "samples": [
+    {
+      "observed_at": 1788965683.626279,
+      "up": [
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "cadvisor:8080",
+            "job": "cAdvisor",
+            "service": "cadvisor",
+            "tier": "infrastructure"
+          },
+          "value": [
+            1788965683.654,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "localhost:9090",
+            "job": "prometheus"
+          },
+          "value": [
+            1788965683.654,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "http://demo-api:8000/health/live",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965683.654,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "demo-api:8000",
+            "job": "demo-api",
+            "service": "demo-api",
+            "tier": "workload"
+          },
+          "value": [
+            1788965683.654,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "control-plane:8000",
+            "job": "control-plane",
+            "service": "control-plane",
+            "tier": "management"
+          },
+          "value": [
+            1788965683.654,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "demo-worker:9102",
+            "job": "demo-worker",
+            "service": "demo-worker",
+            "tier": "worker"
+          },
+          "value": [
+            1788965683.654,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "http://demo-api:8000/health/ready",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965683.654,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "fault-injector:8000",
+            "job": "fault-injector",
+            "service": "fault-injector"
+          },
+          "value": [
+            1788965683.654,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "node-exporter:9100",
+            "job": "node-exporter",
+            "service": "node-exporter",
+            "tier": "infrastructure"
+          },
+          "value": [
+            1788965683.654,
+            "1"
+          ]
+        }
+      ],
+      "availability": [
+        {
+          "metric": {
+            "__name__": "probe_success",
+            "instance": "http://demo-api:8000/health/live",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965683.659,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "probe_success",
+            "instance": "http://demo-api:8000/health/ready",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965683.659,
+            "1"
+          ]
+        }
+      ],
+      "error_rate": [
+        {
+          "metric": {},
+          "value": [
+            1788965683.663,
+            "0"
+          ]
+        }
+      ],
+      "p95": [
+        {
+          "metric": {},
+          "value": [
+            1788965683.665,
+            "0.023487981673742817"
+          ]
+        }
+      ],
+      "queue_depth": [
+        {
+          "metric": {
+            "__name__": "demo_worker_queue_depth",
+            "instance": "demo-worker:9102",
+            "job": "demo-worker",
+            "service": "demo-worker",
+            "tier": "worker"
+          },
+          "value": [
+            1788965683.667,
+            "1"
+          ]
+        }
+      ],
+      "alerts": []
+    },
+    {
+      "observed_at": 1788965698.6787076,
+      "up": [
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "cadvisor:8080",
+            "job": "cAdvisor",
+            "service": "cadvisor",
+            "tier": "infrastructure"
+          },
+          "value": [
+            1788965698.685,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "localhost:9090",
+            "job": "prometheus"
+          },
+          "value": [
+            1788965698.685,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "http://demo-api:8000/health/live",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965698.685,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "demo-api:8000",
+            "job": "demo-api",
+            "service": "demo-api",
+            "tier": "workload"
+          },
+          "value": [
+            1788965698.685,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "control-plane:8000",
+            "job": "control-plane",
+            "service": "control-plane",
+            "tier": "management"
+          },
+          "value": [
+            1788965698.685,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "demo-worker:9102",
+            "job": "demo-worker",
+            "service": "demo-worker",
+            "tier": "worker"
+          },
+          "value": [
+            1788965698.685,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "http://demo-api:8000/health/ready",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965698.685,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "fault-injector:8000",
+            "job": "fault-injector",
+            "service": "fault-injector"
+          },
+          "value": [
+            1788965698.685,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "node-exporter:9100",
+            "job": "node-exporter",
+            "service": "node-exporter",
+            "tier": "infrastructure"
+          },
+          "value": [
+            1788965698.685,
+            "1"
+          ]
+        }
+      ],
+      "availability": [
+        {
+          "metric": {
+            "__name__": "probe_success",
+            "instance": "http://demo-api:8000/health/live",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965698.687,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "probe_success",
+            "instance": "http://demo-api:8000/health/ready",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965698.687,
+            "1"
+          ]
+        }
+      ],
+      "error_rate": [
+        {
+          "metric": {},
+          "value": [
+            1788965698.689,
+            "0"
+          ]
+        }
+      ],
+      "p95": [
+        {
+          "metric": {},
+          "value": [
+            1788965698.691,
+            "0.028273809523809573"
+          ]
+        }
+      ],
+      "queue_depth": [
+        {
+          "metric": {
+            "__name__": "demo_worker_queue_depth",
+            "instance": "demo-worker:9102",
+            "job": "demo-worker",
+            "service": "demo-worker",
+            "tier": "worker"
+          },
+          "value": [
+            1788965698.693,
+            "1"
+          ]
+        }
+      ],
+      "alerts": []
+    },
+    {
+      "observed_at": 1788965713.6977522,
+      "up": [
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "cadvisor:8080",
+            "job": "cAdvisor",
+            "service": "cadvisor",
+            "tier": "infrastructure"
+          },
+          "value": [
+            1788965713.708,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "localhost:9090",
+            "job": "prometheus"
+          },
+          "value": [
+            1788965713.708,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "http://demo-api:8000/health/live",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965713.708,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "demo-api:8000",
+            "job": "demo-api",
+            "service": "demo-api",
+            "tier": "workload"
+          },
+          "value": [
+            1788965713.708,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "control-plane:8000",
+            "job": "control-plane",
+            "service": "control-plane",
+            "tier": "management"
+          },
+          "value": [
+            1788965713.708,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "demo-worker:9102",
+            "job": "demo-worker",
+            "service": "demo-worker",
+            "tier": "worker"
+          },
+          "value": [
+            1788965713.708,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "http://demo-api:8000/health/ready",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965713.708,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "fault-injector:8000",
+            "job": "fault-injector",
+            "service": "fault-injector"
+          },
+          "value": [
+            1788965713.708,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "node-exporter:9100",
+            "job": "node-exporter",
+            "service": "node-exporter",
+            "tier": "infrastructure"
+          },
+          "value": [
+            1788965713.708,
+            "1"
+          ]
+        }
+      ],
+      "availability": [
+        {
+          "metric": {
+            "__name__": "probe_success",
+            "instance": "http://demo-api:8000/health/live",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965713.71,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "probe_success",
+            "instance": "http://demo-api:8000/health/ready",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965713.71,
+            "1"
+          ]
+        }
+      ],
+      "error_rate": [
+        {
+          "metric": {},
+          "value": [
+            1788965713.712,
+            "0"
+          ]
+        }
+      ],
+      "p95": [
+        {
+          "metric": {},
+          "value": [
+            1788965713.714,
+            "0.028214285714285723"
+          ]
+        }
+      ],
+      "queue_depth": [
+        {
+          "metric": {
+            "__name__": "demo_worker_queue_depth",
+            "instance": "demo-worker:9102",
+            "job": "demo-worker",
+            "service": "demo-worker",
+            "tier": "worker"
+          },
+          "value": [
+            1788965713.715,
+            "1"
+          ]
+        }
+      ],
+      "alerts": []
+    },
+    {
+      "observed_at": 1788965728.718487,
+      "up": [
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "cadvisor:8080",
+            "job": "cAdvisor",
+            "service": "cadvisor",
+            "tier": "infrastructure"
+          },
+          "value": [
+            1788965728.726,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "localhost:9090",
+            "job": "prometheus"
+          },
+          "value": [
+            1788965728.726,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "http://demo-api:8000/health/live",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965728.726,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "demo-api:8000",
+            "job": "demo-api",
+            "service": "demo-api",
+            "tier": "workload"
+          },
+          "value": [
+            1788965728.726,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "control-plane:8000",
+            "job": "control-plane",
+            "service": "control-plane",
+            "tier": "management"
+          },
+          "value": [
+            1788965728.726,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "demo-worker:9102",
+            "job": "demo-worker",
+            "service": "demo-worker",
+            "tier": "worker"
+          },
+          "value": [
+            1788965728.726,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "http://demo-api:8000/health/ready",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965728.726,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "fault-injector:8000",
+            "job": "fault-injector",
+            "service": "fault-injector"
+          },
+          "value": [
+            1788965728.726,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "node-exporter:9100",
+            "job": "node-exporter",
+            "service": "node-exporter",
+            "tier": "infrastructure"
+          },
+          "value": [
+            1788965728.726,
+            "1"
+          ]
+        }
+      ],
+      "availability": [
+        {
+          "metric": {
+            "__name__": "probe_success",
+            "instance": "http://demo-api:8000/health/live",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965728.728,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "probe_success",
+            "instance": "http://demo-api:8000/health/ready",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965728.728,
+            "1"
+          ]
+        }
+      ],
+      "error_rate": [
+        {
+          "metric": {},
+          "value": [
+            1788965728.73,
+            "0"
+          ]
+        }
+      ],
+      "p95": [
+        {
+          "metric": {},
+          "value": [
+            1788965728.734,
+            "0.026937499999999923"
+          ]
+        }
+      ],
+      "queue_depth": [
+        {
+          "metric": {
+            "__name__": "demo_worker_queue_depth",
+            "instance": "demo-worker:9102",
+            "job": "demo-worker",
+            "service": "demo-worker",
+            "tier": "worker"
+          },
+          "value": [
+            1788965728.735,
+            "1"
+          ]
+        }
+      ],
+      "alerts": []
+    },
+    {
+      "observed_at": 1788965743.191065,
+      "up": [
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "cadvisor:8080",
+            "job": "cAdvisor",
+            "service": "cadvisor",
+            "tier": "infrastructure"
+          },
+          "value": [
+            1788965743.201,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "localhost:9090",
+            "job": "prometheus"
+          },
+          "value": [
+            1788965743.201,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "http://demo-api:8000/health/live",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965743.201,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "demo-api:8000",
+            "job": "demo-api",
+            "service": "demo-api",
+            "tier": "workload"
+          },
+          "value": [
+            1788965743.201,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "control-plane:8000",
+            "job": "control-plane",
+            "service": "control-plane",
+            "tier": "management"
+          },
+          "value": [
+            1788965743.201,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "demo-worker:9102",
+            "job": "demo-worker",
+            "service": "demo-worker",
+            "tier": "worker"
+          },
+          "value": [
+            1788965743.201,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "http://demo-api:8000/health/ready",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965743.201,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "fault-injector:8000",
+            "job": "fault-injector",
+            "service": "fault-injector"
+          },
+          "value": [
+            1788965743.201,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "node-exporter:9100",
+            "job": "node-exporter",
+            "service": "node-exporter",
+            "tier": "infrastructure"
+          },
+          "value": [
+            1788965743.201,
+            "1"
+          ]
+        }
+      ],
+      "availability": [
+        {
+          "metric": {
+            "__name__": "probe_success",
+            "instance": "http://demo-api:8000/health/live",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965743.205,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "probe_success",
+            "instance": "http://demo-api:8000/health/ready",
+            "job": "demo-api-probes",
+            "service": "demo-api"
+          },
+          "value": [
+            1788965743.205,
+            "1"
+          ]
+        }
+      ],
+      "error_rate": [
+        {
+          "metric": {},
+          "value": [
+            1788965743.207,
+            "0"
+          ]
+        }
+      ],
+      "p95": [
+        {
+          "metric": {},
+          "value": [
+            1788965743.212,
+            "0.02294301470588235"
+          ]
+        }
+      ],
+      "queue_depth": [
+        {
+          "metric": {
+            "__name__": "demo_worker_queue_depth",
+            "instance": "demo-worker:9102",
+            "job": "demo-worker",
+            "service": "demo-worker",
+            "tier": "worker"
+          },
+          "value": [
+            1788965743.214,
+            "1"
+          ]
+        }
+      ],
+      "alerts": []
+    }
+  ],
+  "queries": {
+    "up": "up",
+    "availability": "probe_success{job=\"demo-api-probes\"}",
+    "error_rate": "sum(rate(demo_api_http_requests_total{status=~\"5..\",endpoint=\"/jobs\"}[1m])) / sum(rate(demo_api_http_requests_total{endpoint=\"/jobs\"}[1m])) or vector(0)",
+    "p95": "histogram_quantile(0.95, sum by(le)(rate(demo_api_http_request_duration_seconds_bucket{endpoint=\"/jobs\"}[1m])))",
+    "queue_depth": "demo_worker_queue_depth",
+    "alerts": "ALERTS{alertstate=\"firing\"}"
+  }
+}

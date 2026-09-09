@@ -1,0 +1,86 @@
+groups:
+  - name: api.rules
+    rules:
+      - alert: ApiUnresponsive
+        expr: probe_success{job="demo-api-probes",instance=~".*/health/ready"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          tier: workload
+          scenario_id: SCN-003
+        annotations:
+          summary: "API Unresponsive on demo-api"
+          description: "Readiness endpoint or p95 latency exceeds 2.0s for > 30s. SCN-003 unresponsive API failure mode detected."
+          runbook_url: "knowledge/runbooks/SCN-003-unresponsive-api.md"
+
+      - alert: ApiHighLatency
+        expr: histogram_quantile(0.95, sum(rate(demo_api_http_request_duration_seconds_bucket[1m])) by (le)) > 1.0
+        for: 30s
+        labels:
+          severity: warning
+          tier: workload
+          scenario_id: SCN-004
+        annotations:
+          summary: "API High Latency detected on demo-api"
+          description: "p95 latency is exceeding 1.0s for > 30s. SCN-004 simulated latency failure mode detected."
+          runbook_url: "knowledge/runbooks/SCN-004-latency-injection.md"
+
+      - alert: PostgresPoolExhausted
+        expr: fault_injector_db_connections_active >= 8
+        for: 15s
+        labels:
+          severity: critical
+          tier: workload
+          scenario_id: SCN-006
+        annotations:
+          summary: "Database connection pool exhausted on demo-api"
+          description: "Active DB connections have reached pool capacity for 15s. SCN-006 DB leak detected."
+          runbook_url: "knowledge/runbooks/SCN-006-db-leak.md"
+
+      - alert: RedisUnreachable
+        expr: demo_api_redis_connected == 0
+        for: 15s
+        labels:
+          severity: critical
+          tier: workload
+          scenario_id: SCN-007
+        annotations:
+          summary: "Redis unreachable by services"
+          description: "Redis connectivity has failed for 15s across application dependencies. SCN-007 Redis outage detected."
+          runbook_url: "knowledge/runbooks/SCN-007-redis-outage.md"
+
+      - alert: HighHttpErrorRate
+        expr: (sum(rate(demo_api_http_requests_total{status=~"5.."}[1m])) / sum(rate(demo_api_http_requests_total[1m]))) > 0.05
+        for: 15s
+        labels:
+          severity: critical
+          tier: workload
+          scenario_id: SCN-009
+        annotations:
+          summary: "Elevated HTTP 5xx error rate on demo-api"
+          description: "5xx error rate has exceeded 5% of all incoming requests for 15s. SCN-009 elevated error rate detected."
+          runbook_url: "knowledge/runbooks/SCN-009-error-rate.md"
+
+      - alert: ApplicationLivenessFailed
+        expr: probe_http_status_code{job="demo-api-probes",instance=~".*/health/live"} >= 500
+        for: 15s
+        labels:
+          severity: critical
+          tier: workload
+          scenario_id: SCN-010
+        annotations:
+          summary: "Application Liveness probe failed"
+          description: "Endpoint /health/live returned non-200. SCN-010 bad deployment failure mode detected."
+          runbook_url: "knowledge/runbooks/SCN-010-bad-deployment.md"
+
+      - alert: ApplicationReadinessFailed
+        expr: probe_http_status_code{job="demo-api-probes",instance=~".*/health/ready"} >= 500
+        for: 15s
+        labels:
+          severity: critical
+          tier: workload
+          scenario_id: SCN-010
+        annotations:
+          summary: "Application Readiness probe failed"
+          description: "Endpoint /health/ready returned non-200. SCN-010 bad deployment failure mode detected."
+          runbook_url: "knowledge/runbooks/SCN-010-bad-deployment.md"

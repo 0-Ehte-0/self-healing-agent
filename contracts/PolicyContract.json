@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "RiskLevel": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ],
+      "title": "RiskLevel",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "environment": {
+      "title": "Environment",
+      "type": "string"
+    },
+    "action": {
+      "title": "Action",
+      "type": "string"
+    },
+    "risk": {
+      "$ref": "#/$defs/RiskLevel"
+    },
+    "approval_required": {
+      "title": "Approval Required",
+      "type": "boolean"
+    },
+    "enabled": {
+      "default": true,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "retry_limit": {
+      "default": 2,
+      "minimum": 0,
+      "title": "Retry Limit",
+      "type": "integer"
+    },
+    "cooldown_seconds": {
+      "default": 600,
+      "minimum": 0,
+      "title": "Cooldown Seconds",
+      "type": "integer"
+    },
+    "confidence_threshold": {
+      "default": 0.8,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence Threshold",
+      "type": "number"
+    }
+  },
+  "required": [
+    "environment",
+    "action",
+    "risk",
+    "approval_required"
+  ],
+  "title": "PolicyContract",
+  "type": "object"
+}

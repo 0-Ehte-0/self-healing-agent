@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import sys
 import time
@@ -9,11 +10,27 @@ from prometheus_client import Gauge, start_http_server
 from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='{"time": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}',
-)
+
+class WorkerFormatter(logging.Formatter):
+    def format(self, record):
+        return json.dumps(
+            {
+                "timestamp": time.time(),
+                "level": record.levelname,
+                "service": "demo-worker",
+                "message": record.getMessage(),
+                "scenario_id": getattr(record, "scenario_id", "BASELINE"),
+                "correlation_id": getattr(record, "correlation_id", "none"),
+            }
+        )
+
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(WorkerFormatter())
 logger = logging.getLogger("demo-worker")
+logger.handlers = [handler]
+logger.setLevel(logging.INFO)
+logger.propagate = False
 
 settings = get_settings()
 
@@ -27,8 +44,39 @@ WORKER_QUEUE_DEPTH = Gauge(
 )
 
 
+async def get_stream_backlog(redis: Redis, stream_key: str, consumer_group: str) -> int:
+    """Calculate the backlog for the consumer group using consumer lag and unacknowledged messages."""
+    try:
+        groups = await redis.xinfo_groups(stream_key)
+        for g in groups:
+            if isinstance(g, dict) and g.get("name") == consumer_group:
+                lag = g.get("lag") or 0
+                pending = g.get("pending") or 0
+                return int(lag) + int(pending)
+    except Exception:
+        pass
+
+    try:
+        pending_info = await redis.xpending(stream_key, consumer_group)
+        if isinstance(pending_info, dict):
+            return int(pending_info.get("pending", 0) or 0)
+        elif isinstance(pending_info, (list, tuple)) and len(pending_info) > 0:
+            return int(pending_info[0] or 0)
+    except Exception:
+        pass
+
+    return 0
+
+
 async def handle_event(event_id: str, payload: dict[str, Any]) -> None:
-    logger.info(f"Processing event {event_id}: payload={payload}")
+    logger.info(
+        "Processing event %s",
+        event_id,
+        extra={
+            "scenario_id": payload.get("scenario_id", "BASELINE"),
+            "correlation_id": payload.get("correlation_id", "none"),
+        },
+    )
     await asyncio.sleep(0.05)
 
 
@@ -47,8 +95,8 @@ async def consume_stream_events(redis: Redis) -> None:
     while True:
         try:
             WORKER_HEARTBEAT_SECONDS.set(time.time())
-            queue_len = await redis.xlen(settings.stream_key)
-            WORKER_QUEUE_DEPTH.set(queue_len)
+            backlog = await get_stream_backlog(redis, settings.stream_key, settings.consumer_group)
+            WORKER_QUEUE_DEPTH.set(backlog)
 
             # Injected worker pause check (SCN-008)
             if await redis.get("fault:worker_pause"):
@@ -63,7 +111,7 @@ async def consume_stream_events(redis: Redis) -> None:
                 block=1000,
             )
 
-            if entries:
+            if isinstance(entries, list) and entries:
                 for stream_name, messages in entries:
                     for message_id, data in messages:
                         await handle_event(message_id, data)
