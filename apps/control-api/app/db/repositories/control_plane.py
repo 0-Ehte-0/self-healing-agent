@@ -27,6 +27,7 @@ from app.db.models import (
 from app.domain.incidents.state_machine import validate_transition
 from sharedmodels.enums import ExecutionStatus, IncidentState
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
@@ -144,6 +145,71 @@ class ControlPlaneRepository:
         self.session.add(incident)
         await self.session.flush()
         return incident
+
+    async def get_resource_by_identifier(
+        self,
+        *,
+        resource_id: UUID | None = None,
+        external_id: str | None = None,
+        name: str | None = None,
+    ) -> Resource | None:
+        if resource_id is not None:
+            res = await self.session.get(Resource, resource_id)
+            if res is not None:
+                return res
+        if external_id is not None:
+            res = await self.session.scalar(
+                sa.select(Resource).where(Resource.external_id == external_id)
+            )
+            if res is not None:
+                return res
+        if name is not None:
+            res = await self.session.scalar(sa.select(Resource).where(Resource.name == name))
+            if res is not None:
+                return res
+        return None
+
+    async def get_active_incident_by_correlation_key(self, correlation_key: str) -> Incident | None:
+        terminal_states = [
+            IncidentState.RESOLVED,
+            IncidentState.ESCALATED,
+            IncidentState.ROLLEDBACK,
+        ]
+        stmt = sa.select(Incident).where(
+            Incident.correlation_key == correlation_key,
+            Incident.state.notin_(terminal_states),
+        )
+        return await self.session.scalar(stmt)
+
+    async def get_or_create_incident(
+        self,
+        *,
+        resource_id: UUID,
+        correlation_key: str,
+        severity: Any,
+        approval_required: bool = False,
+    ) -> tuple[Incident, bool]:
+        active = await self.get_active_incident_by_correlation_key(correlation_key)
+        if active is not None:
+            return active, False
+
+        try:
+            async with self.session.begin_nested():
+                incident = Incident(
+                    resource_id=resource_id,
+                    correlation_key=correlation_key,
+                    severity=severity,
+                    state=IncidentState.DETECTED,
+                    approval_required=approval_required,
+                )
+                self.session.add(incident)
+                await self.session.flush()
+                return incident, True
+        except IntegrityError:
+            active = await self.get_active_incident_by_correlation_key(correlation_key)
+            if active is not None:
+                return active, False
+            raise
 
     async def link_event(self, incident_id: UUID, event_id: UUID) -> None:
         await self.session.execute(

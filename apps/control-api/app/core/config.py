@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     CHROMA_HOST: str = "localhost"
     CHROMA_PORT: int = 8000
 
+    # Phase 5: Webhook Secrets and Ingestion Settings
+    ALERTMANAGER_WEBHOOK_SECRET: str = "alertmanager-secret-token"
+    GENERIC_EVENT_SECRET: str = "generic-secret-token"
+    INCIDENT_STREAM_KEY: str = "stream:incidents"
+    INCIDENT_DLQ_KEY: str = "stream:incidents:dlq"
+    EVENT_DEDUP_WINDOW_SECONDS: int = 60
+    ALERT_CORRELATION_WINDOW_SECONDS: int = 300
+
     @field_validator("LOG_LEVEL")
     @classmethod
     def validate_log_level(cls, v: str) -> str:

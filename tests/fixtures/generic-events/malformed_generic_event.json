@@ -1,0 +1,5 @@
+{
+  "source": "INVALID_SOURCE_ENUM",
+  "severity": "UNKNOWN_SEVERITY",
+  "details": "not-a-dict"
+}

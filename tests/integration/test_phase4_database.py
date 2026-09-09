@@ -256,6 +256,7 @@ async def test_illegal_transition_and_rollback(factory):
     with pytest.raises(ValueError, match="Illegal"):
         async with unit_of_work(factory, "test:illegal") as repo:
             await repo.transition(incident_id, 1, S.RESOLVED)
+    # pyrefly: ignore [implicit-import]
     with pytest.raises(sa.exc.DBAPIError, match="Illegal"):
         async with unit_of_work(factory, "test:sql-bypass") as repo:
             await repo.session.execute(
@@ -364,7 +365,9 @@ async def test_execution_idempotency_and_lock_ownership(factory):
                 AuditEntry.operation == "DELETE",
             )
         )
+        # pyrefly: ignore [missing-attribute]
         assert audit.details["before"]["owner"] == "test:owner"
+        # pyrefly: ignore [missing-attribute]
         assert audit.details["after"] is None
 
 
@@ -377,6 +380,7 @@ async def test_audit_immutable_as_app_role_and_owner(factory):
             "DELETE FROM audit_entries",
             "TRUNCATE audit_entries",
         ]:
+            # pyrefly: ignore [implicit-import]
             with pytest.raises(sa.exc.DBAPIError):
                 async with unit_of_work(factory, "test:tamper") as repo:
                     if role:
@@ -492,6 +496,7 @@ async def test_plan_version_approver_role_and_immutability(factory):
             "expires_at": now + timedelta(minutes=29),
         }
         values.update(overrides)
+        # pyrefly: ignore [implicit-import]
         with pytest.raises(sa.exc.DBAPIError):
             async with unit_of_work(factory, "test:approval") as repo:
                 await repo.add(Approval(**values))
@@ -516,6 +521,7 @@ async def test_plan_version_approver_role_and_immutability(factory):
         .values(parameters={"forged": True}),
         sa.delete(Approval).where(Approval.id == approval_id),
     ]:
+        # pyrefly: ignore [implicit-import]
         with pytest.raises(sa.exc.DBAPIError, match="immutable"):
             async with unit_of_work(factory, "test:tamper") as repo:
                 await repo.session.execute(mutation)

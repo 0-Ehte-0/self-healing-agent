@@ -1,0 +1,766 @@
+{
+  "version": "4",
+  "status": "firing",
+  "receiver": "control-plane-webhook",
+  "commonLabels": {
+    "alertname": "HighCpuSaturation",
+    "scenario_id": "SCN-002",
+    "service": "demo-api",
+    "severity": "warning"
+  },
+  "commonAnnotations": {
+    "summary": "High CPU saturation storm"
+  },
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:0",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 0"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0000"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:1",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 1"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0001"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:2",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 2"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0002"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:3",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 3"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0003"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:4",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 4"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0004"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:5",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 5"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0005"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:6",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 6"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0006"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:7",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 7"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0007"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:8",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 8"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0008"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:9",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 9"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0009"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:10",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 10"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0010"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:11",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 11"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0011"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:12",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 12"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0012"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:13",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 13"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0013"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:14",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 14"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0014"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:15",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 15"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0015"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:16",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 16"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0016"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:17",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 17"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0017"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:18",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 18"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0018"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:19",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 19"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0019"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:20",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 20"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0020"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:21",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 21"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0021"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:22",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 22"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0022"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:23",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 23"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0023"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:24",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 24"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0024"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:25",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 25"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0025"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:26",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 26"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0026"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:27",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 27"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0027"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:28",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 28"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0028"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:29",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 29"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0029"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:30",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 30"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0030"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:31",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 31"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0031"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:32",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 32"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0032"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:33",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 33"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0033"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:34",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 34"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0034"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:35",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 35"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0035"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:36",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 36"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0036"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:37",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 37"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0037"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:38",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 38"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0038"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:39",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 39"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0039"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:40",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 40"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0040"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:41",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 41"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0041"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:42",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 42"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0042"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:43",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 43"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0043"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:44",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 44"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0044"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:45",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 45"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0045"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:46",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 46"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0046"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:47",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 47"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0047"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:48",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 48"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0048"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighCpuSaturation",
+        "scenario_id": "SCN-002",
+        "service": "demo-api",
+        "instance": "demo-api:49",
+        "severity": "warning"
+      },
+      "annotations": {
+        "summary": "CPU high on thread 49"
+      },
+      "startsAt": "2026-09-09T18:05:00.000Z",
+      "fingerprint": "storm_fp_0049"
+    }
+  ]
+}

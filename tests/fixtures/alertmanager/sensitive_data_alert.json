@@ -1,0 +1,30 @@
+{
+  "version": "4",
+  "status": "firing",
+  "receiver": "control-plane-webhook",
+  "commonLabels": {
+    "alertname": "PostgresPoolExhausted",
+    "scenario_id": "SCN-006",
+    "service": "demo-api"
+  },
+  "commonAnnotations": {
+    "summary": "Database pool failure with conn_str=postgresql://app_user:super_secret_password_123@postgres.prod:5432/control_plane"
+  },
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "PostgresPoolExhausted",
+        "scenario_id": "SCN-006",
+        "service": "demo-api",
+        "api_key": "secret-key-abcdef-123456",
+        "db_password": "my_hidden_db_password"
+      },
+      "annotations": {
+        "summary": "Connection failed using Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.t-IDcSemACt8x4iTMCda8Yhe3iZaWbvV5XKSTbuAn0M",
+        "debug_info": "Failed to connect to redis://:redis_secret_pass@redis.prod:6379/0 after 3 retries"
+      },
+      "startsAt": "2026-09-09T18:10:00.000Z"
+    }
+  ]
+}

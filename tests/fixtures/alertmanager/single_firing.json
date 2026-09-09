@@ -1,0 +1,39 @@
+{
+  "version": "4",
+  "groupKey": "{}:{alertname=\"ContainerDown\",scenario_id=\"SCN-001\"}",
+  "status": "firing",
+  "receiver": "control-plane-webhook",
+  "groupLabels": {
+    "alertname": "ContainerDown",
+    "scenario_id": "SCN-001"
+  },
+  "commonLabels": {
+    "alertname": "ContainerDown",
+    "scenario_id": "SCN-001",
+    "service": "demo-api",
+    "severity": "critical",
+    "tier": "workload"
+  },
+  "commonAnnotations": {
+    "summary": "Container demo-api is down",
+    "description": "Service demo-api instance demo-api:8000 has been unreachable for 15s. SCN-001 failure mode detected."
+  },
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "ContainerDown",
+        "scenario_id": "SCN-001",
+        "service": "demo-api",
+        "instance": "demo-api:8000",
+        "severity": "critical"
+      },
+      "annotations": {
+        "summary": "Container demo-api is down",
+        "description": "Service demo-api instance demo-api:8000 has been unreachable for 15s. SCN-001 failure mode detected."
+      },
+      "startsAt": "2026-09-09T18:00:00.000Z",
+      "fingerprint": "a1b2c3d4e5f67890"
+    }
+  ]
+}

@@ -1,15 +1,23 @@
+import os
 from collections.abc import AsyncGenerator
 
 from app.core.config import get_settings
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 settings = get_settings()
 
+engine_kwargs: dict = {}
+if settings.ENV == "testing" or "PYTEST_CURRENT_TEST" in os.environ:
+    engine_kwargs["poolclass"] = NullPool
+else:
+    engine_kwargs["pool_pre_ping"] = True
+    engine_kwargs["pool_size"] = 10
+    engine_kwargs["max_overflow"] = 20
+
 engine = create_async_engine(
     str(settings.DATABASE_URL),
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    **engine_kwargs,
 )
 
 AsyncSessionLocal = async_sessionmaker(

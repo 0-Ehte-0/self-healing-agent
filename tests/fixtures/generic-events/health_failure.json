@@ -1,0 +1,17 @@
+{
+  "source": "GENERIC",
+  "event_type": "WorkerHealthCheckFailed",
+  "severity": "HIGH",
+  "service": "demo-worker",
+  "scenario_id": "SCN-008",
+  "message": "demo-worker stream consumer heartbeat timed out after 30s",
+  "details": {
+    "worker_id": "worker-pool-1",
+    "backlog_count": 142,
+    "last_heartbeat_seconds_ago": 35.2
+  },
+  "labels": {
+    "tier": "worker",
+    "environment": "local"
+  }
+}

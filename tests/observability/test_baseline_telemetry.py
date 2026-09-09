@@ -8,7 +8,9 @@ import pytest
 spec = importlib.util.spec_from_file_location(
     "capture_baseline", Path(__file__).resolve().parents[2] / "data/baseline/capture_baseline.py"
 )
+# pyrefly: ignore [bad-argument-type]
 capture = importlib.util.module_from_spec(spec)
+# pyrefly: ignore [missing-attribute]
 spec.loader.exec_module(capture)
 
 
@@ -42,6 +44,7 @@ def test_capture_accepts_measured_healthy_sample():
 )
 def test_capture_rejects_unhealthy_or_nonfinite_values(key, value):
     sample = healthy_sample()
+    # pyrefly: ignore [unsupported-operation]
     sample[key][0]["value"][1] = value
     with pytest.raises(ValueError):
         capture.validate_sample(sample)

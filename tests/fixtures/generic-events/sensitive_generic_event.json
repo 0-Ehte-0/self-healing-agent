@@ -1,0 +1,15 @@
+{
+  "source": "GENERIC",
+  "event_type": "DatabaseAuthFailure",
+  "severity": "CRITICAL",
+  "service": "demo-api",
+  "scenario_id": "SCN-006",
+  "message": "Auth failure while authenticating with database",
+  "details": {
+    "connection_string": "postgresql://admin:super_secret_password@db.prod:5432/app",
+    "token": "secret_token_12345",
+    "headers": {
+      "Authorization": "Bearer sensitive_auth_token_9999"
+    }
+  }
+}
