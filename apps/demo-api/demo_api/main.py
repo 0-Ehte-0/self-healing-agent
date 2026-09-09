@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 from demo_api.config import get_settings
 from demo_api.db import JobRecord, get_db, init_db
+from demo_api.faults import cpu_manager, faults_router, hang_manager
 from demo_api.logging import configure_logging, correlation_id_ctx, scenario_id_ctx
 from demo_api.metrics import (
     HEALTH_LIVE_STATUS,
@@ -63,6 +64,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="demo-api", lifespan=lifespan)
 setup_telemetry(app, settings)
+app.include_router(faults_router)
 
 
 @app.middleware("http")
@@ -145,7 +147,10 @@ async def health_ready(
             detail="Deployment configuration invalid",
         )
 
-    if await redis.get("fault:health_hang"):
+    if hang_manager.is_hung():
+        HEALTH_READY_STATUS.set(0)
+        await hang_manager.wait_if_hung(60.0)
+    elif await redis.get("fault:health_hang"):
         HEALTH_READY_STATUS.set(0)
         await asyncio.sleep(60.0)
 
@@ -177,6 +182,7 @@ async def health_ready(
 
 @app.get("/metrics")
 async def metrics() -> Response:
+    cpu_manager.update_metrics()
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
@@ -220,8 +226,3 @@ async def create_job(
     )
 
     return JobCreateResponse(job_id=job_uuid, status="QUEUED")
-
-
-@app.post("/_faults/crash")
-async def trigger_crash() -> None:
-    os.kill(os.getpid(), signal.SIGTERM)

@@ -1,6 +1,7 @@
 import asyncio
 import os
 import time
+import uuid
 from typing import Any
 
 import psutil
@@ -63,22 +64,33 @@ FAULT_REGISTRY: dict[str, type[BaseFault]] = {
 
 
 class FaultRecord(BaseModel):
+    run_id: str
     scenario_id: str
     injected_at: float
     ttl_seconds: int
+    status: str = "active"  # "active", "cleared", "expired", "reset_by_restart"
+    cleared_at: float | None = None
 
 
 ACTIVE_FAULTS: dict[str, BaseFault] = {}
 FAULT_TIMERS: dict[str, asyncio.Task] = {}
 FAULT_METADATA: dict[str, FaultRecord] = {}
+FAULT_HISTORY: dict[str, FaultRecord] = {}
 
 
-async def _auto_clear_job(scenario_id: str, ttl: int) -> None:
+async def _auto_clear_job(run_id: str, scenario_id: str, ttl: int) -> None:
     try:
         await asyncio.sleep(ttl)
         if scenario_id in ACTIVE_FAULTS:
             await ACTIVE_FAULTS[scenario_id].clear()
             ACTIVE_FAULTS.pop(scenario_id, None)
+            FAULT_TIMERS.pop(scenario_id, None)
+        if run_id in FAULT_HISTORY:
+            rec = FAULT_HISTORY[run_id]
+            if rec.status == "active":
+                rec.status = "expired"
+                rec.cleared_at = time.time()
+        if scenario_id in FAULT_METADATA and FAULT_METADATA[scenario_id].run_id == run_id:
             FAULT_METADATA.pop(scenario_id, None)
     except asyncio.CancelledError:
         pass
@@ -93,26 +105,44 @@ async def inject_fault(scenario_id: str, ttl_seconds: int = 600) -> dict[str, An
         )
 
     if scenario_id in ACTIVE_FAULTS:
-        return {"status": "already_active", "scenario_id": scenario_id}
+        rec = FAULT_METADATA.get(scenario_id)
+        return {
+            "status": "already_active",
+            "scenario_id": scenario_id,
+            "run_id": rec.run_id if rec else None,
+        }
 
+    run_id = f"{scenario_id}-{uuid.uuid4().hex[:8]}"
     fault_instance = FAULT_REGISTRY[scenario_id](scenario_id=scenario_id)
     await fault_instance.inject()
     ACTIVE_FAULTS[scenario_id] = fault_instance
-    FAULT_METADATA[scenario_id] = FaultRecord(
+
+    rec = FaultRecord(
+        run_id=run_id,
         scenario_id=scenario_id,
         injected_at=time.time(),
         ttl_seconds=ttl_seconds,
+        status="active",
     )
+    FAULT_METADATA[scenario_id] = rec
+    FAULT_HISTORY[run_id] = rec
 
-    task = asyncio.create_task(_auto_clear_job(scenario_id, ttl_seconds))
+    task = asyncio.create_task(_auto_clear_job(run_id, scenario_id, ttl_seconds))
     FAULT_TIMERS[scenario_id] = task
 
-    return {"status": "injected", "scenario_id": scenario_id, "ttl_seconds": ttl_seconds}
+    return {
+        "status": "injected",
+        "scenario_id": scenario_id,
+        "run_id": run_id,
+        "ttl_seconds": ttl_seconds,
+        "injected_at": rec.injected_at,
+    }
 
 
 @app.post("/faults/{scenario_id}/clear", dependencies=[Depends(verify_fault_token)])
 async def clear_fault(scenario_id: str) -> dict[str, Any]:
     if scenario_id not in ACTIVE_FAULTS:
+        # Idempotent response
         return {"status": "not_active", "scenario_id": scenario_id}
 
     if scenario_id in FAULT_TIMERS:
@@ -121,11 +151,33 @@ async def clear_fault(scenario_id: str) -> dict[str, Any]:
 
     await ACTIVE_FAULTS[scenario_id].clear()
     ACTIVE_FAULTS.pop(scenario_id, None)
-    FAULT_METADATA.pop(scenario_id, None)
+    rec = FAULT_METADATA.pop(scenario_id, None)
+    if rec:
+        rec.status = "cleared"
+        rec.cleared_at = time.time()
+        return {
+            "status": "cleared",
+            "scenario_id": scenario_id,
+            "run_id": rec.run_id,
+            "cleared_at": rec.cleared_at,
+        }
 
     return {"status": "cleared", "scenario_id": scenario_id}
 
 
+@app.get("/faults/{scenario_id}/status", dependencies=[Depends(verify_fault_token)])
+async def get_fault_status(scenario_id: str) -> dict[str, Any]:
+    if scenario_id in ACTIVE_FAULTS:
+        rec = FAULT_METADATA.get(scenario_id)
+        return {"status": "active", "record": rec}
+    # Return most recent history record
+    for rec in reversed(list(FAULT_HISTORY.values())):
+        if rec.scenario_id == scenario_id:
+            return {"status": rec.status, "record": rec}
+    return {"status": "idle", "scenario_id": scenario_id}
+
+
 @app.get("/faults/active", dependencies=[Depends(verify_fault_token)])
 async def list_active_faults() -> list[FaultRecord]:
-    return list(FAULT_METADATA.values())
+    return [r for r in FAULT_METADATA.values() if r.status == "active"]
+

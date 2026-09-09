@@ -1,0 +1,22 @@
+# M1 Execution Compose Override
+# Enforces trusted single-target allowlist, restart policies, and resource bounds.
+
+services:
+  demo-api:
+    labels:
+      self-healing.managed: "true"
+      self-healing.target: "demo-api"
+    # SCN-001: restart "no" prevents Docker daemon from automatically healing a container crash before the agent intervenes
+    restart: "no"
+    environment:
+      - FAULT_INJECTOR_SECRET=${FAULT_INJECTOR_SECRET:-injector-secret-token}
+      - CPU_BUDGET_CORES=1.0
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+
+  demo-worker:
+    labels:
+      self-healing.managed: "false"
+      self-healing.target: "demo-worker"

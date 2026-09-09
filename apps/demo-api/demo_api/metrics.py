@@ -41,3 +41,15 @@ REDIS_CONNECTED = Gauge(
     "demo_api_redis_connected",
     "Redis connection status",
 )
+
+# Monotonically increasing Counter for demo-api CPU seconds (including child processes)
+DEMO_API_CPU_SECONDS_TOTAL = Counter(
+    "demo_api_cpu_seconds_total",
+    "Total CPU seconds consumed by demo-api and child processes",
+)
+
+# Configured CPU budget cores for demo-api container
+DEMO_API_CPU_BUDGET_CORES = Gauge(
+    "demo_api_cpu_budget_cores",
+    "Configured CPU core budget for demo-api",
+)

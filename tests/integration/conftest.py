@@ -14,7 +14,7 @@ from app.db.seed.__main__ import seed
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture(scope="module")

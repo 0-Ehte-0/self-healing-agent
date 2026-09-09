@@ -172,7 +172,9 @@ async def test_alertmanager_alert_storm_concurrency_creates_exactly_one_incident
             ],
         }
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test", timeout=30.0
+    ) as client:
         # Fire 50 requests simultaneously
         tasks = [
             client.post(

@@ -14,7 +14,7 @@ groups:
           runbook_url: "knowledge/runbooks/SCN-001-container-crash.md"
 
       - alert: HighCpuSaturation
-        expr: rate(fault_injector_cpu_seconds_total[1m]) > 0.75 or rate(process_cpu_seconds_total{job=~"demo-api|demo-worker"}[1m]) > 0.75
+        expr: (rate(demo_api_cpu_seconds_total[1m]) / 1.0) > 0.75 or (rate(process_cpu_seconds_total{job="demo-api"}[1m]) / 1.0) > 0.75
         for: 30s
         labels:
           severity: warning
