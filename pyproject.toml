@@ -33,3 +33,13 @@ pythonpath = [
     "apps/traffic-generator",
     "apps/fault-injector",
 ]
+
+[tool.pyrefly]
+search-path = [
+    "apps/control-api",
+    "apps/demo-api",
+    "apps/demo-worker",
+    "apps/traffic-generator",
+    "apps/fault-injector",
+    "packages/shared-models",
+]

@@ -7,5 +7,21 @@
     "${workspaceFolder}/apps/traffic-generator",
     "${workspaceFolder}/apps/fault-injector",
     "${workspaceFolder}/packages/shared-models"
+  ],
+  "python.pyrefly.extraSearchPaths": [
+    "${workspaceFolder}/apps/control-api",
+    "${workspaceFolder}/apps/demo-api",
+    "${workspaceFolder}/apps/demo-worker",
+    "${workspaceFolder}/apps/traffic-generator",
+    "${workspaceFolder}/apps/fault-injector",
+    "${workspaceFolder}/packages/shared-models"
+  ],
+  "pyrefly.extraSearchPaths": [
+    "${workspaceFolder}/apps/control-api",
+    "${workspaceFolder}/apps/demo-api",
+    "${workspaceFolder}/apps/demo-worker",
+    "${workspaceFolder}/apps/traffic-generator",
+    "${workspaceFolder}/apps/fault-injector",
+    "${workspaceFolder}/packages/shared-models"
   ]
 }
