@@ -104,12 +104,14 @@ class ControlPlaneRepository:
             insert(Event)
             .values(**values)
             .on_conflict_do_nothing(constraint="uq_event_dedup")
-            .returning(Event.id)
+            .returning(Event)
         )
-        result = await self.session.scalar(query)
-        if result:
-            return await self.session.get(Event, result)
-        return await self.session.scalar(
+        event = await self.session.scalar(query)
+        if event is not None:
+            return event
+
+        # 2. Fallback: If deduplication triggered, fetch the existing record
+        existing = await self.session.scalar(
             sa.select(Event).where(
                 Event.source == source,
                 Event.resource_id == resource_id,
@@ -117,6 +119,12 @@ class ControlPlaneRepository:
                 Event.dedup_window == dedup_window,
             )
         )
+        if existing is None:
+            raise RuntimeError(
+                f"Event with fingerprint {fingerprint} conflicted on 'uq_event_dedup' "
+                "but could not be found in the database."
+            )
+        return existing
 
     async def create_incident(
         self,
@@ -199,7 +207,9 @@ class ControlPlaneRepository:
             or step.resource_id != resource_id
         ):
             raise ValueError("Execution does not match its plan, incident and resource")
-        result = await self.session.scalar(
+
+        # 1. Insert and return the ORM entity directly
+        query = (
             insert(Execution)
             .values(
                 id=uuid4(),
@@ -214,15 +224,24 @@ class ControlPlaneRepository:
                 result={},
             )
             .on_conflict_do_nothing(index_elements=[Execution.idempotency_key])
-            .returning(Execution.id)
+            .returning(Execution)
         )
-        execution = (
-            await self.session.get(Execution, result)
-            if result
-            else await self.session.scalar(
+        execution = await self.session.scalar(query)
+
+        # 2. Fallback: If deduplicated, fetch the existing execution record
+        if execution is None:
+            execution = await self.session.scalar(
                 sa.select(Execution).where(Execution.idempotency_key == idempotency_key)
             )
-        )
+
+        # 3. Guard against None to narrow the type and catch race conditions
+        if execution is None:
+            raise RuntimeError(
+                f"Execution with idempotency key '{idempotency_key}' conflicted "
+                "on insert but could not be located in the database."
+            )
+
+        # 4. Enforce idempotency parameter matching
         if (execution.incident_id, execution.step_id, execution.resource_id) != (
             incident_id,
             step_id,
@@ -232,7 +251,11 @@ class ControlPlaneRepository:
         return execution
 
     async def finish_execution(
-        self, execution_id: UUID, expected_version: int, status: ExecutionStatus, result: dict
+        self,
+        execution_id: UUID,
+        expected_version: int,
+        status: ExecutionStatus,
+        result: dict,
     ) -> Execution:
         execution = await self.session.get(Execution, execution_id, populate_existing=True)
         allowed = {
@@ -244,8 +267,19 @@ class ControlPlaneRepository:
             raise ConflictError("Missing execution or stale version")
         if status not in allowed.get(execution.status, set()):
             raise ValueError("Illegal execution transition")
-        values = {"status": status, "result": result, "version": expected_version + 1}
-        values["started_at" if status == ExecutionStatus.RUNNING else "finished_at"] = sa.func.now()
+
+        # Explicitly annotate dict[str, Any] to permit SQL expressions like sa.func.now()
+        values: dict[str, Any] = {
+            "status": status,
+            "result": result,
+            "version": expected_version + 1,
+        }
+
+        if status == ExecutionStatus.RUNNING:
+            values["started_at"] = sa.func.now()
+        else:
+            values["finished_at"] = sa.func.now()
+
         updated = await self.session.scalar(
             sa.update(Execution)
             .where(Execution.id == execution_id, Execution.version == expected_version)
