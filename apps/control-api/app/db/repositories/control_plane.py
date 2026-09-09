@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Any
@@ -37,7 +37,7 @@ class ConflictError(ValueError):
 @asynccontextmanager
 async def unit_of_work(
     factory: async_sessionmaker, actor: str
-) -> AsyncIterator["ControlPlaneRepository"]:
+) -> AsyncGenerator["ControlPlaneRepository"]:
     if not actor or not actor.strip() or len(actor) > 128:
         raise ValueError("A nonempty actor (at most 128 characters) is required")
     async with factory() as session, session.begin():
