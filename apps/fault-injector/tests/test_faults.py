@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fault_injector.faults.baddeployment import BadDeploymentFault
@@ -15,13 +15,60 @@ async def test_cpu_stress_execution():
     fault = CpuStressFault(scenario_id="SCN-002")
     assert not fault.is_active()
 
-    await fault.inject()
-    assert fault.is_active()
-    assert len(fault._processes) > 0
+    mock_post = AsyncMock()
+    mock_response = MagicMock(status_code=200)
+    mock_response.json.return_value = {"status": "started"}
+    mock_response.raise_for_status.return_value = None
+    mock_post.return_value = mock_response
 
-    await fault.clear()
+    with patch("httpx.AsyncClient.post", mock_post):
+        await fault.inject()
+        assert fault.is_active()
+        mock_post.assert_awaited_once_with(
+            "/_faults/cpu/inject?cores=1",
+            headers={"X-Fault-Token": "injector-secret-token"},
+        )
+
+        mock_post.reset_mock()
+        await fault.clear()
+        assert not fault.is_active()
+        mock_post.assert_awaited_once_with(
+            "/_faults/cpu/clear",
+            headers={"X-Fault-Token": "injector-secret-token"},
+        )
+
+
+@pytest.mark.asyncio
+async def test_health_hang_execution():
+    fault = HealthHangFault(scenario_id="SCN-003")
     assert not fault.is_active()
-    assert len(fault._processes) == 0
+
+    mock_post = AsyncMock()
+    mock_response = MagicMock(status_code=200)
+    mock_response.json.return_value = {"status": "injected"}
+    mock_response.raise_for_status.return_value = None
+    mock_post.return_value = mock_response
+
+    mock_redis = AsyncMock()
+    with (
+        patch("httpx.AsyncClient.post", mock_post),
+        patch("redis.asyncio.Redis.from_url", return_value=mock_redis),
+    ):
+        await fault.inject()
+        assert fault.is_active()
+        mock_post.assert_awaited_once_with(
+            "/_faults/hang/inject",
+            headers={"X-Fault-Token": "injector-secret-token"},
+        )
+
+        mock_post.reset_mock()
+        await fault.clear()
+        assert not fault.is_active()
+        mock_post.assert_awaited_once_with(
+            "/_faults/hang/clear",
+            headers={"X-Fault-Token": "injector-secret-token"},
+        )
+        mock_redis.delete.assert_awaited_with("fault:health_hang")
 
 
 @pytest.mark.asyncio
@@ -41,7 +88,6 @@ async def test_memory_pressure_execution():
     "fault_class,scenario_id,expected_key",
     [
         (LatencyFault, "SCN-004", "fault:latency"),
-        (HealthHangFault, "SCN-003", "fault:health_hang"),
         (WorkerPauseFault, "SCN-008", "fault:worker_pause"),
         (ElevatedErrorRateFault, "SCN-009", "fault:error_rate"),
         (BadDeploymentFault, "SCN-010", "fault:bad_deployment"),
