@@ -19,6 +19,7 @@ class DockerResourceDiscovery:
             try:
                 # pyrefly: ignore [untyped-import]
                 import docker
+
                 self.client = docker.from_env()
             except Exception as e:
                 logger.warning(f"Failed to initialize Docker client: {e}")
@@ -92,7 +93,9 @@ class DockerResourceDiscovery:
             )
 
         if not resource:
-            logger.warning(f"Cannot sync binding: Resource record for {service_name} not found in database")
+            logger.warning(
+                f"Cannot sync binding: Resource record for {service_name} not found in database"
+            )
             return None
 
         labels = dict(resource.labels or {})
@@ -109,15 +112,17 @@ class DockerResourceDiscovery:
         else:
             new_generation = prev_generation if prev_generation > 0 else 1
 
-        labels.update({
-            "docker_container_id": new_container_id,
-            "binding_generation": new_generation,
-            "container_name": container_info["container_name"],
-            "container_status": container_info["status"],
-            "compose_project": container_info["compose_project"],
-            "compose_service": container_info["compose_service"],
-            "discovered_at": datetime.now(UTC).isoformat(),
-        })
+        labels.update(
+            {
+                "docker_container_id": new_container_id,
+                "binding_generation": new_generation,
+                "container_name": container_info["container_name"],
+                "container_status": container_info["status"],
+                "compose_project": container_info["compose_project"],
+                "compose_service": container_info["compose_service"],
+                "discovered_at": datetime.now(UTC).isoformat(),
+            }
+        )
         resource.labels = labels
 
         # Restrict managed=True strictly to demo-api with verified self-healing.managed=true label

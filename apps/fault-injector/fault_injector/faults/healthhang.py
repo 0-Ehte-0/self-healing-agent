@@ -35,7 +35,9 @@ class HealthHangFault(BaseFault):
                 )
                 logger.info(f"Cleared process-local hang on demo-api: {res.status_code}")
         except Exception as e:
-            logger.warning(f"Error requesting hang clear on demo-api (container may have restarted): {e}")
+            logger.warning(
+                f"Error requesting hang clear on demo-api (container may have restarted): {e}"
+            )
         finally:
             # Also ensure legacy redis key is deleted if it existed
             try:

@@ -180,4 +180,3 @@ async def get_fault_status(scenario_id: str) -> dict[str, Any]:
 @app.get("/faults/active", dependencies=[Depends(verify_fault_token)])
 async def list_active_faults() -> list[FaultRecord]:
     return [r for r in FAULT_METADATA.values() if r.status == "active"]
-

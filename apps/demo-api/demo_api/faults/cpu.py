@@ -56,7 +56,9 @@ class CpuStressManager:
 
         self._active = True
         self._injected_at = time.time()
-        logger.info(f"Started {len(self._processes)} CPU stress worker(s) inside demo-api container")
+        logger.info(
+            f"Started {len(self._processes)} CPU stress worker(s) inside demo-api container"
+        )
         return {"status": "started", **self.get_status()}
 
     def stop(self) -> dict:

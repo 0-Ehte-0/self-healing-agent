@@ -34,6 +34,8 @@ class CpuStressFault(BaseFault):
                 )
                 logger.info(f"Cleared CPU stress on demo-api: {res.status_code}")
         except Exception as e:
-            logger.warning(f"Error requesting CPU clear on demo-api (container may have restarted): {e}")
+            logger.warning(
+                f"Error requesting CPU clear on demo-api (container may have restarted): {e}"
+            )
         finally:
             self._active = False

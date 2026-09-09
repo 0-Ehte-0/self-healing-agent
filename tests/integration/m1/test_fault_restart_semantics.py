@@ -39,7 +39,9 @@ async def test_scn_001_crash_endpoint_authentication_and_dispatch(monkeypatch):
 
     monkeypatch.setattr(os, "kill", fake_kill)
 
-    async with AsyncClient(transport=ASGITransport(app=demo_api_app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=demo_api_app), base_url="http://test"
+    ) as client:
         # 1. Unauthenticated request must be rejected with 401
         unauth = await client.post("/_faults/crash")
         assert unauth.status_code == 401
@@ -93,7 +95,9 @@ async def test_scn_002_cpu_stress_lifecycle_and_counter_metrics():
 @pytest.mark.asyncio
 async def test_scn_002_cpu_stress_http_endpoints():
     """Verifies authentication and endpoints for CPU stress in demo-api."""
-    async with AsyncClient(transport=ASGITransport(app=demo_api_app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=demo_api_app), base_url="http://test"
+    ) as client:
         # 1. Unauthenticated injection fails
         res = await client.post("/_faults/cpu/inject")
         assert res.status_code == 401
@@ -151,7 +155,9 @@ async def test_scn_003_hang_probe_separation_and_clear_semantics():
 @pytest.mark.asyncio
 async def test_scn_003_hang_http_probe_separation():
     """Verifies that HTTP /health/live returns 200 while hang is active, and /health/ready blocks."""
-    async with AsyncClient(transport=ASGITransport(app=demo_api_app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=demo_api_app), base_url="http://test"
+    ) as client:
         # 1. Inject hang via authenticated endpoint
         res = await client.post("/_faults/hang/inject", headers=DEMO_AUTH_HEADER)
         assert res.status_code == 200
@@ -163,7 +169,9 @@ async def test_scn_003_hang_http_probe_separation():
             assert live_res.json() == {"status": "ok"}
 
             # 3. Administrative routes stay responsive
-            status_res = await client.get("/_faults/hang/status", headers=DEMO_AUTH_HEADER, timeout=2.0)
+            status_res = await client.get(
+                "/_faults/hang/status", headers=DEMO_AUTH_HEADER, timeout=2.0
+            )
             assert status_res.status_code == 200
             assert status_res.json()["active"] is True
         finally:

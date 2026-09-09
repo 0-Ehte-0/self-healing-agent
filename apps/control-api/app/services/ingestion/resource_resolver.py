@@ -51,11 +51,13 @@ class ResourceResolver:
         if svc:
             res = await self.repo.session.scalar(
                 sa.select(Resource).where(
-                    Resource.external_id.in_([
-                        f"self-healing:{svc}",
-                        f"compose:local:self-healing:{svc}",
-                        svc,
-                    ])
+                    Resource.external_id.in_(
+                        [
+                            f"self-healing:{svc}",
+                            f"compose:local:self-healing:{svc}",
+                            svc,
+                        ]
+                    )
                 )
             )
             if res:
