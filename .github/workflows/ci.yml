@@ -59,6 +59,14 @@ jobs:
           ruff check .
           ruff format --check .
 
+      - name: Run Database Migrations and Seed
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/control_plane
+        run: |
+          cd apps/control-api
+          alembic upgrade head
+          python -m app.db.seed
+
       - name: Run Tests
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/control_plane
