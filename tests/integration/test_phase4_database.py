@@ -405,9 +405,14 @@ async def test_seed_idempotency_and_approval_record_constraints(factory):
     await seed(factory)
     async with unit_of_work(factory, "test:read") as repo:
         users = list(await repo.session.scalars(sa.select(User)))
-        assert {u.role for u in users} == {UserRole.APPROVER, UserRole.VIEWER}
+        assert {u.role for u in users} == {
+            UserRole.ADMIN,
+            UserRole.APPROVER,
+            UserRole.OPERATOR,
+            UserRole.VIEWER,
+        }
         assert all(u.password_hash.startswith("scrypt$") for u in users)
-        assert await repo.session.scalar(sa.select(sa.func.count()).select_from(Policy)) == 5
+        assert await repo.session.scalar(sa.select(sa.func.count()).select_from(Policy)) == 10
         audits = list(
             await repo.session.scalars(
                 sa.select(AuditEntry).where(AuditEntry.entity_type == "users")
