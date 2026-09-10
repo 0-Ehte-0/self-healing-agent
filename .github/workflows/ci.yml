@@ -49,6 +49,8 @@ jobs:
           pip install ruff pytest pytest-asyncio httpx pyyaml
           pip install -e packages/shared-models
           pip install -e packages/telemetry-client
+          pip install -e packages/policy-engine
+          pip install -e packages/provider-adapters
           pip install -e packages/diagnosis
           pip install -e packages/action-catalog
           pip install -e packages/agent-core
