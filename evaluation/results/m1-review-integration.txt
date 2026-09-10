@@ -1,0 +1,11 @@
+.......................................................................  [100%]
+============================== warnings summary ===============================
+tests/integration/m1/approvals/test_approval_lifecycle.py::test_reject_plan_lifecycle_with_escalation
+  C:\dev\self-healing-agent\.venv\Lib\site-packages\fastapi\routing.py:352: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    return await dependant.call(**values)
+
+tests/integration/m1/approvals/test_approval_lifecycle.py::test_reject_plan_lifecycle_with_escalation
+  C:\Users\Ehtesham\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py:88: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    self._context.run(self._callback, *self._args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html

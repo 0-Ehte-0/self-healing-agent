@@ -64,7 +64,8 @@ class TelemetryEvaluator:
 
         # 3. Counter Reset & Post-Restart Warm-up Check
         counter_ready, counter_reason = self._check_counter_stability(
-            container_started_at=container_started_at, now=now
+            container_started_at=container_started_at,
+            now=now,
         )
 
         # 4. CPU Saturation Check
@@ -107,16 +108,13 @@ class TelemetryEvaluator:
         now: datetime,
     ) -> CheckObservation:
         if not container_state:
-            # If no container state was supplied, check passes if target_container_id is bound
             return CheckObservation(
                 name="target_identity",
                 observed_at=now,
                 value=target_container_id or "unbound",
                 threshold=target_container_id,
-                status=CheckStatus.PASS if target_container_id else CheckStatus.UNKNOWN,
-                reason="Target container binding matches"
-                if target_container_id
-                else "Missing container binding",
+                status=CheckStatus.UNKNOWN,
+                reason="No live container state observation available",
             )
 
         cid = container_state.get("container_id", "")
@@ -224,18 +222,19 @@ class TelemetryEvaluator:
                 await client.aclose()
 
     def _check_counter_stability(
-        self, container_started_at: datetime | None, now: datetime
+        self,
+        container_started_at: datetime | None,
+        now: datetime,
     ) -> tuple[bool, str]:
         """Checks if post-restart scrape samples have stabilized (at least 15s post restart)."""
-        if container_started_at is None:
-            return True, "No container started_at provided"
+        if container_started_at is not None:
+            elapsed_since_start = (now - container_started_at).total_seconds()
+            if elapsed_since_start < 15.0:
+                return (
+                    False,
+                    f"Waiting for post-restart counter stabilization ({elapsed_since_start:.1f}s / 15s elapsed)",
+                )
 
-        elapsed_since_start = (now - container_started_at).total_seconds()
-        if elapsed_since_start < 15.0:
-            return (
-                False,
-                f"Waiting for post-restart counter stabilization ({elapsed_since_start:.1f}s / 15s elapsed)",
-            )
         return True, "Counter stabilized"
 
     async def _evaluate_cpu(
@@ -385,11 +384,15 @@ class TelemetryEvaluator:
             # Check error rate
             err_rate = 0.0
             err_res = await self.prometheus_client.query_instant(error_query)
-            if (
-                err_res.status == "success"
-                and err_res.samples
-                and err_res.samples[0].latest_value is not None
-            ):
+            if err_res.status != "success":
+                return CheckObservation(
+                    name="business_traffic",
+                    observed_at=now,
+                    status=CheckStatus.UNKNOWN,
+                    reason=f"Prometheus error query status: {err_res.status}",
+                )
+
+            if err_res.samples and err_res.samples[0].latest_value is not None:
                 err_per_sec = err_res.samples[0].latest_value
                 if req_per_sec > 0:
                     err_rate = err_per_sec / req_per_sec
@@ -476,18 +479,41 @@ class TelemetryEvaluator:
         counter_reason: str,
         now: datetime,
     ) -> CheckObservation:
-        max_lat = profile.traffic.get("max_p95_latency_seconds", 0.200)
+        max_lat = profile.traffic.get("max_p95_latency_seconds")
+        if max_lat is None:
+            return CheckObservation(
+                name="business_latency",
+                observed_at=now,
+                status=CheckStatus.PASS,
+                reason="Latency histogram not currently required or active for this profile",
+            )
+
+        if not counter_ready:
+            return CheckObservation(
+                name="business_latency",
+                observed_at=now,
+                status=CheckStatus.UNKNOWN,
+                reason=counter_reason,
+            )
+
         query = 'histogram_quantile(0.95, sum(rate(demo_api_http_request_duration_seconds_bucket{job="demo-api",route="/jobs"}[1m])) by (le))'
 
         try:
             res = await self.prometheus_client.query_instant(query)
-            if res.status != "success" or not res.samples or res.samples[0].latest_value is None:
-                # If latency is optional in profile, treat as pass or context
+            if res.status != "success":
                 return CheckObservation(
                     name="business_latency",
                     observed_at=now,
-                    status=CheckStatus.PASS,
-                    reason="Latency histogram not currently required or active for this profile",
+                    status=CheckStatus.UNKNOWN,
+                    reason=f"Prometheus latency query status: {res.status}",
+                )
+
+            if not res.samples or res.samples[0].latest_value is None:
+                return CheckObservation(
+                    name="business_latency",
+                    observed_at=now,
+                    status=CheckStatus.UNKNOWN,
+                    reason="Prometheus returned no latency samples",
                 )
 
             val = res.samples[0].latest_value
@@ -516,7 +542,7 @@ class TelemetryEvaluator:
                 name="business_latency",
                 observed_at=now,
                 status=CheckStatus.UNKNOWN,
-                reason=f"Latency metric query error: {exc}",
+                reason=f"Prometheus latency query error: {exc}",
             )
 
     async def _evaluate_alerts(

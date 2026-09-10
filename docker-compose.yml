@@ -121,6 +121,10 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - WORKER_ID=worker-compose-1
       - LOG_LEVEL=INFO
+      - PROMETHEUS_URL=http://prometheus:9090
+      - LOKI_URL=http://loki:3100
+      - DEMO_API_URL=http://demo-api:8000
+
     depends_on:
       - postgres
       - redis

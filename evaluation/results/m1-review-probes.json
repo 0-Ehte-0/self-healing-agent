@@ -1,0 +1,52 @@
+{
+  "no_live_container_observation": {
+    "name": "target_identity",
+    "observed_at": "2026-09-10T16:57:22.194983Z",
+    "query_interval": null,
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "unit": null,
+    "threshold": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "status": "UNKNOWN",
+    "reason": "No live container state observation available",
+    "freshness_seconds": null
+  },
+  "unavailable_required_latency": {
+    "name": "business_latency",
+    "observed_at": "2026-09-10T16:57:22.194983Z",
+    "query_interval": null,
+    "value": null,
+    "unit": null,
+    "threshold": null,
+    "status": "UNKNOWN",
+    "reason": "Prometheus latency query status: unavailable",
+    "freshness_seconds": null
+  },
+  "unavailable_error_numerator": {
+    "name": "business_traffic",
+    "observed_at": "2026-09-10T16:57:22.194983Z",
+    "query_interval": null,
+    "value": null,
+    "unit": null,
+    "threshold": null,
+    "status": "UNKNOWN",
+    "reason": "Prometheus error query status: unavailable",
+    "freshness_seconds": null
+  },
+  "diagnosis_with_actual_workflow_input": {
+    "current_diagnosis_id": "be75d120-8293-46e2-9266-fb8b008657da",
+    "status": "DIAGNOSIS_ESCALATED",
+    "is_actionable": false,
+    "root_cause": "INSUFFICIENT_EVIDENCE",
+    "scenario_id": "SCN-001",
+    "confidence": 0.0,
+    "version": 1,
+    "last_error": "Alert was received but observations do not confirm an active fault; insufficient evidence for mutation.",
+    "escalation_reason": "Alert was received but observations do not confirm an active fault; insufficient evidence for mutation."
+  },
+  "denied_policy_graph_path": [],
+  "root_cause_used_as_profile": {
+    "input": "API_UNRESPONSIVE",
+    "loaded": "SCN-003",
+    "expected": "SCN-003"
+  }
+}

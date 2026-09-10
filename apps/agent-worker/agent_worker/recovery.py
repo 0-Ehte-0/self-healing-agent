@@ -108,23 +108,35 @@ class WorkflowRecoveryService:
     async def recover_unprocessed_incidents(self) -> int:
         """Finds incidents stuck in non-terminal states with no active lease and no pending schedule."""
         async with unit_of_work(self.session_factory, actor="worker:recovery") as repo:
-            # Non-terminal states
+            # Non-terminal states including executing and verifying
             active_states = [
                 IncidentState.DETECTED,
                 IncidentState.TRIAGED,
                 IncidentState.DIAGNOSED,
                 IncidentState.PLANNED,
                 IncidentState.APPROVED,
+                IncidentState.EXECUTING,
+                IncidentState.VERIFYING,
             ]
-            # Incidents without active leases or pending schedules older than 10s
+            # Incidents without active leases or pending future schedules (e.g. cooldown wait), older than 10s
             stmt = (
                 sa.select(Incident)
                 .outerjoin(WorkflowLease, WorkflowLease.incident_id == Incident.id)
+                .outerjoin(
+                    WorkflowSchedule,
+                    sa.and_(
+                        WorkflowSchedule.incident_id == Incident.id,
+                        WorkflowSchedule.status == "PENDING",
+                        WorkflowSchedule.next_run_at > sa.func.now(),
+                    ),
+                )
                 .where(
                     Incident.state.in_(active_states),
                     WorkflowLease.incident_id.is_(None),
+                    WorkflowSchedule.id.is_(None),
                     Incident.updated_at <= sa.func.now() - sa.text("interval '10 seconds'"),
                 )
+                .order_by(Incident.created_at.asc())
                 .limit(10)
             )
             stuck_incidents = list((await repo.session.scalars(stmt)).all())

@@ -37,6 +37,22 @@ class WorkflowRunner:
         self.lease_manager = lease_manager or IncidentLeaseManager(session_factory, worker_id)
         self.retry_policy = retry_policy or NodeRetryPolicy()
         self.node_overrides = node_overrides or {}
+        if "collect_evidence" not in self.node_overrides:
+            from functools import partial
+
+            from agentcore.nodes.evidence import collect_evidence_node
+
+            self.node_overrides["collect_evidence"] = partial(
+                collect_evidence_node, session_factory=self.session_factory, actor=self.worker_id
+            )
+        if "diagnose" not in self.node_overrides:
+            from functools import partial
+
+            from agentcore.nodes.diagnosis import diagnose_node
+
+            self.node_overrides["diagnose"] = partial(
+                diagnose_node, session_factory=self.session_factory, actor=self.worker_id
+            )
         if "plan" not in self.node_overrides:
             from functools import partial
 
@@ -44,6 +60,14 @@ class WorkflowRunner:
 
             self.node_overrides["plan"] = partial(
                 plan_node, session_factory=self.session_factory, actor=self.worker_id
+            )
+        if "evaluate_policy" not in self.node_overrides:
+            from functools import partial
+
+            from agentcore.nodes.policy import evaluate_policy_node
+
+            self.node_overrides["evaluate_policy"] = partial(
+                evaluate_policy_node, session_factory=self.session_factory, actor=self.worker_id
             )
         if "execute" not in self.node_overrides:
             from functools import partial
@@ -80,6 +104,7 @@ class WorkflowRunner:
             self.node_overrides["escalate"] = partial(
                 escalate_node, session_factory=self.session_factory, actor=self.worker_id
             )
+
         self.workflow = build_incident_workflow(
             checkpointer=self.checkpointer,
             node_overrides=self.node_overrides,
@@ -131,6 +156,10 @@ class WorkflowRunner:
             is_approved = incident.state == IncidentState.APPROVED or any(
                 a.decision == "APPROVE" for a in reconstruction["approvals"]
             )
+            root_cause = (
+                reconstruction["diagnoses"][-1].root_cause if reconstruction["diagnoses"] else None
+            )
+            latest_plan_obj = reconstruction["plans"][-1] if reconstruction["plans"] else None
 
         # 3. Acquire exclusive processing lease (Step 7)
         async with self.lease_manager.hold(
@@ -151,10 +180,24 @@ class WorkflowRunner:
                 "retry_limit": retry_limit,
                 "approval_required": approval_req,
                 "is_approved": is_approved,
+                "root_cause": root_cause,
                 "wait_reason": None,
                 "wait_until": None,
                 "status": "RUNNING",
             }
+            if latest_plan_obj:
+                initial_state["plan_version"] = latest_plan_obj.version
+                initial_state["content_hash"] = latest_plan_obj.content_hash
+                initial_state["container_id"] = latest_plan_obj.container_id
+                initial_state["target_container_id"] = latest_plan_obj.container_id
+                initial_state["binding_generation"] = latest_plan_obj.binding_generation
+                initial_state["verification_profile"] = latest_plan_obj.verification_profile
+                initial_state["scenario_id"] = latest_plan_obj.verification_profile
+                initial_state["risk"] = (
+                    latest_plan_obj.risk.value
+                    if hasattr(latest_plan_obj.risk, "value")
+                    else str(latest_plan_obj.risk)
+                )
 
             if resume_metadata:
                 for k, v in resume_metadata.items():

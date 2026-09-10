@@ -52,6 +52,8 @@ class DeterministicPlanner:
 
         cause_str = root_cause.value if hasattr(root_cause, "value") else str(root_cause)
 
+        profile_name = "m1_default_restart_profile"
+
         if cause_str in SUPPORTED_RESTART_CAUSES:
             steps = [
                 RemediationStepSchema(
@@ -82,7 +84,7 @@ class DeterministicPlanner:
                         "timeout_seconds": 30,
                         "binding_generation": target.binding_generation,
                     },
-                    verification={"profile": "m1_default_restart_profile"},
+                    verification={"profile": profile_name},
                 ),
                 RemediationStepSchema(
                     id=uuid4(),
@@ -94,13 +96,14 @@ class DeterministicPlanner:
                     parameters={
                         "resource_id": str(target.resource_id),
                         "duration_seconds": 90,
-                        "verification_profile": "m1_default_restart_profile",
+                        "verification_profile": profile_name,
                     },
-                    verification={"profile": "m1_default_restart_profile"},
+                    verification={"profile": profile_name},
                 ),
             ]
             risk = RiskLevel.LOW
-            verification_profile = "m1_default_restart_profile"
+            verification_profile = profile_name
+
         else:
             # Escalation plan for unsupported or ambiguous root causes
             steps = [

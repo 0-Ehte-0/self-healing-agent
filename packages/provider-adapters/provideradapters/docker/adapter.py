@@ -125,7 +125,10 @@ class DockerExecutionAdapter(BaseProviderAdapter):
             )
             db_generation = res_labels.get("binding_generation", 1)
 
-            if db_container_id and db_container_id != intent.container_id:
+            if not db_container_id:
+                raise PrecheckFailedError("Resource record has no bound Docker container ID")
+
+            if db_container_id != intent.container_id:
                 raise TargetRecreatedError(
                     f"Target container was replaced in resource bindings: plan expects {intent.container_id}, DB has {db_container_id}"
                 )
@@ -146,8 +149,11 @@ class DockerExecutionAdapter(BaseProviderAdapter):
                 raise PrecheckFailedError(
                     f"Current policy decision is DENY: {latest_decision.reason_codes}"
                 )
-
-            if latest_decision.decision == "REQUIRE_APPROVAL":
+            elif latest_decision.decision == "DEFER":
+                raise PrecheckFailedError(
+                    f"Current policy decision is DEFER: {latest_decision.reason_codes}"
+                )
+            elif latest_decision.decision == "REQUIRE_APPROVAL":
                 approval = await repo.session.scalar(
                     sa.select(Approval)
                     .where(
@@ -222,6 +228,36 @@ class DockerExecutionAdapter(BaseProviderAdapter):
                         post_state=existing.result or {},
                         uncertainty_reason=existing.uncertainty_reason,
                     )
+                elif existing.status == ExecutionStatus.RUNNING:
+                    logger.info("Reconciling RUNNING execution %s from prior attempt", existing.id)
+                    post_snapshot = self.client.take_snapshot(intent.container_id)
+                    is_running = post_snapshot.status == "running"
+                    outcome_status = (
+                        ExecutionOutcomeStatus.SUCCEEDED
+                        if is_running
+                        else ExecutionOutcomeStatus.UNCERTAIN
+                    )
+                    uncertainty_reason = (
+                        None
+                        if is_running
+                        else "Container not running after execution crash recovery"
+                    )
+                    fin_status = ExecutionStatus.SUCCEEDED if is_running else ExecutionStatus.FAILED
+                    async with unit_of_work(self.session_factory, actor=self.actor) as repo:
+                        await repo.finish_execution(
+                            execution_id=existing.id,
+                            expected_version=existing.version,
+                            status=fin_status,
+                            result=post_snapshot.model_dump(),
+                            uncertainty_reason=uncertainty_reason,
+                        )
+                    return ExecutionOutcome(
+                        status=outcome_status,
+                        execution_id=existing.id,
+                        idempotency_key=intent.idempotency_key,
+                        post_state=post_snapshot.model_dump(),
+                        uncertainty_reason=uncertainty_reason,
+                    )
 
         # Pre-take snapshot
         pre_snapshot = self.client.take_snapshot(intent.container_id)
@@ -271,6 +307,37 @@ class DockerExecutionAdapter(BaseProviderAdapter):
                         post_state=exec_record.result or {},
                         uncertainty_reason=exec_record.uncertainty_reason,
                     )
+                elif exec_record.status == ExecutionStatus.RUNNING:
+                    logger.info(
+                        "Reconciling RUNNING execution %s from prior attempt", exec_record.id
+                    )
+                    post_snapshot = self.client.take_snapshot(intent.container_id)
+                    is_running = post_snapshot.status == "running"
+                    outcome_status = (
+                        ExecutionOutcomeStatus.SUCCEEDED
+                        if is_running
+                        else ExecutionOutcomeStatus.UNCERTAIN
+                    )
+                    uncertainty_reason = (
+                        None
+                        if is_running
+                        else "Container not running after execution crash recovery"
+                    )
+                    fin_status = ExecutionStatus.SUCCEEDED if is_running else ExecutionStatus.FAILED
+                    await repo.finish_execution(
+                        execution_id=exec_record.id,
+                        expected_version=exec_record.version,
+                        status=fin_status,
+                        result=post_snapshot.model_dump(),
+                        uncertainty_reason=uncertainty_reason,
+                    )
+                    return ExecutionOutcome(
+                        status=outcome_status,
+                        execution_id=exec_record.id,
+                        idempotency_key=intent.idempotency_key,
+                        post_state=post_snapshot.model_dump(),
+                        uncertainty_reason=uncertainty_reason,
+                    )
 
                 # Transition Execution to RUNNING
                 running_record = await repo.finish_execution(
@@ -279,6 +346,7 @@ class DockerExecutionAdapter(BaseProviderAdapter):
                     status=ExecutionStatus.RUNNING,
                     result={"dispatch_intent": intent.model_dump(mode="json")},
                 )
+
                 execution_version = running_record.version
 
             # 3. Apply mutation with bounded Docker timeout

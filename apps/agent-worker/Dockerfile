@@ -11,19 +11,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
+
 # Install shared packages
 COPY packages/shared-models /workspace/packages/shared-models/
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -e /workspace/packages/shared-models
+RUN pip install --no-cache-dir -e /workspace/packages/shared-models
 
-# Install diagnosis and action-catalog
+COPY packages/telemetry-client /workspace/packages/telemetry-client/
+RUN pip install --no-cache-dir -e /workspace/packages/telemetry-client
+
 COPY packages/diagnosis /workspace/packages/diagnosis/
 RUN pip install --no-cache-dir -e /workspace/packages/diagnosis
 
 COPY packages/action-catalog /workspace/packages/action-catalog/
 RUN pip install --no-cache-dir -e /workspace/packages/action-catalog
 
-# Install agent-core
+COPY packages/policy-engine /workspace/packages/policy-engine/
+RUN pip install --no-cache-dir -e /workspace/packages/policy-engine
+
+COPY packages/provider-adapters /workspace/packages/provider-adapters/
+RUN pip install --no-cache-dir -e /workspace/packages/provider-adapters
+
 COPY packages/agent-core /workspace/packages/agent-core/
 RUN pip install --no-cache-dir -e /workspace/packages/agent-core
 
@@ -34,6 +43,9 @@ RUN pip install --no-cache-dir -e /workspace/apps/control-api
 # Install agent-worker
 COPY apps/agent-worker /workspace/apps/agent-worker/
 RUN pip install --no-cache-dir -e /workspace/apps/agent-worker
+
+# Copy verification profile assets
+COPY scenarios /workspace/scenarios/
 
 WORKDIR /workspace/apps/agent-worker
 

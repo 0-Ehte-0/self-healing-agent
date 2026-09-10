@@ -95,11 +95,22 @@ def build_incident_workflow(
     # 3. Conditional routing from evaluate_policy
     def route_after_policy(state: IncidentGraphState) -> str:
         # Policy rejection safe edge (ADR-0003)
-        if state.get("status") == "POLICY_DENIED":
+        if (
+            state.get("status") in {"POLICY_DENIED", "ESCALATED"}
+            or state.get("policy_decision") == "DENY"
+        ):
             return "escalate"
+        if state.get("status") == "POLICY_DEFERRED" or state.get("policy_decision") == "DEFER":
+            return END
         if state.get("approval_required") is True and state.get("is_approved") is not True:
             return "wait_for_approval"
-        return "execute"
+        if (
+            state.get("policy_decision") == "ALLOW"
+            or state.get("is_approved") is True
+            or state.get("status") == "POLICY_EVALUATED"
+        ):
+            return "execute"
+        return "escalate"
 
     workflow.add_conditional_edges(
         "evaluate_policy",
@@ -108,6 +119,7 @@ def build_incident_workflow(
             "escalate": "escalate",
             "wait_for_approval": "wait_for_approval",
             "execute": "execute",
+            END: END,
         },
     )
 

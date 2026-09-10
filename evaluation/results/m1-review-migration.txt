@@ -1,0 +1,12 @@
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 91477cb0cf34, initial_setup
+INFO  [alembic.runtime.migration] Running upgrade 91477cb0cf34 -> 20260909_phase4, Control-plane record model, restricted runtime role, and audit enforcement.
+INFO  [alembic.runtime.migration] Running upgrade 20260909_phase4 -> 20260909_record_guards, Cross-record integrity and approved-plan immutability.
+INFO  [alembic.runtime.migration] Running upgrade 20260909_record_guards -> 20260909_audit_delete, Retain the complete before snapshot when a domain record is deleted.
+INFO  [alembic.runtime.migration] Running upgrade 20260909_audit_delete -> 20260910_m1b_workflow, M1-B workflow runtime: safe escalation edges, outbox, leases, schedules, and checkpoints.
+INFO  [alembic.runtime.migration] Running upgrade 20260910_m1b_workflow -> 20260910_m1c_evidence_diagnosis, M1-C Evidence and Diagnosis schema extensions.
+INFO  [alembic.runtime.migration] Running upgrade 20260910_m1c_evidence_diagnosis -> 20260910_m1d_action_catalog, M1-D Action Catalog and Planning schema extensions.
+INFO  [alembic.runtime.migration] Running upgrade 20260910_m1d_action_catalog -> 20260910_m1e_policy_auth, M1-E Policy evaluation, user sessions, and automation controls schema extensions.
+INFO  [alembic.runtime.migration] Running upgrade 20260910_m1e_policy_auth -> 20260910_m1f_docker_adapter, M1-F Docker adapter, execution contract extensions, and resource lock quarantining.
+INFO  [alembic.runtime.migration] Running upgrade 20260910_m1f_docker_adapter -> 20260910_m1g_verification, M1-G Independent verification, observation sample history, and recovery attribution.

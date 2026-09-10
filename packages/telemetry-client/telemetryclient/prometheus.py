@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 from datetime import UTC, datetime, timezone
 from typing import Any
@@ -43,13 +44,15 @@ class PrometheusClient:
 
     def __init__(
         self,
-        base_url: str = "http://localhost:9090",
+        base_url: str | None = None,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
         max_bytes: int = MAX_PROMETHEUS_RESPONSE_BYTES,
         client: httpx.AsyncClient | None = None,
     ):
-        self.base_url = base_url.rstrip("/")
+        raw_url = base_url or os.getenv("PROMETHEUS_URL", "http://localhost:9090")
+        self.base_url = raw_url.rstrip("/")
         self.timeout = timeout
+
         self.max_bytes = max_bytes
         self._external_client = client
 

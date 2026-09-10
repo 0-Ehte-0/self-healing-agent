@@ -15,7 +15,11 @@ dependencies = [
     "shared-models",
     "diagnosis",
     "action-catalog",
+    "policy-engine",
+    "provider-adapters",
+    "telemetry-client",
 ]
+
 
 [tool.setuptools.packages.find]
 where = ["."]

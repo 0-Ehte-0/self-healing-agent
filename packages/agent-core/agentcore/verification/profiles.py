@@ -59,8 +59,15 @@ def load_verification_profile(
     if not profile_name or profile_name == "m1_default_restart_profile":
         return DEFAULT_PROFILE
 
+    cause_to_scenario = {
+        "CONTAINER_STOPPED": "SCN-001",
+        "CPU_SATURATION": "SCN-002",
+        "API_UNRESPONSIVE": "SCN-003",
+    }
+    resolved_name = cause_to_scenario.get(profile_name.upper(), profile_name)
+
     base_dir = scenarios_dir or SCENARIOS_DIR
-    profile_path = base_dir / profile_name / "verification-profile.json"
+    profile_path = base_dir / resolved_name / "verification-profile.json"
 
     if profile_path.is_file():
         try:

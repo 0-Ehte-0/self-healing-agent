@@ -87,20 +87,7 @@ async def submit_approval(
                 detail="Incident not found.",
             )
 
-        # 2. Check current state and version
-        if incident.state != IncidentState.PENDING_APPROVAL:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Incident is not in PENDING_APPROVAL state (current state: {incident.state.value}).",
-            )
-
-        if incident.version != body.expected_incident_version:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Incident version mismatch: expected {body.expected_incident_version}, but current version is {incident.version}.",
-            )
-
-        # 3. Fetch plan
+        # 2. Fetch plan first to evaluate plan-level idempotency
         plan_stmt = sa.select(RemediationPlan).where(
             RemediationPlan.incident_id == incident_id,
             RemediationPlan.version == body.plan_version,
@@ -118,8 +105,7 @@ async def submit_approval(
                 detail="Plan content hash mismatch.",
             )
 
-        # 4. Check idempotency: check if an approval with this idempotency key was recorded
-        # We can store idempotency key in audit entries or check existing approvals for this plan
+        # 3. Check idempotency: if an approval for this plan was already recorded
         existing_approval = await repo.session.scalar(
             sa.select(Approval)
             .where(
@@ -130,6 +116,71 @@ async def submit_approval(
         )
 
         now = datetime.now(UTC)
+
+        if existing_approval:
+            if existing_approval.decision == body.decision:
+                # Idempotent replay: return identical response
+                response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+                return ApprovalResponse(
+                    id=str(existing_approval.id),
+                    incident_id=str(incident_id),
+                    plan_id=str(plan.id),
+                    plan_version=plan.version,
+                    decision=existing_approval.decision,
+                    rejection_reason=existing_approval.rejection_reason,
+                    approver=user.username,
+                    created_at=existing_approval.created_at.isoformat()
+                    if existing_approval.created_at
+                    else now.isoformat(),
+                    expires_at=existing_approval.expires_at.isoformat(),
+                    incident_state=incident.state.value,
+                    incident_version=incident.version,
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="A conflicting approval decision was already recorded for this plan version.",
+                )
+
+        # 4. Enforce 30-minute approval request deadline (Section 9 Step 11)
+        request_deadline = (
+            incident.updated_at + timedelta(minutes=30)
+            if incident.updated_at
+            else incident.created_at + timedelta(minutes=30)
+        )
+        if now > request_deadline:
+            if incident.state == IncidentState.PENDING_APPROVAL:
+                updated_incident = await repo.transition(
+                    incident_id=incident_id,
+                    expected_version=incident.version,
+                    target=IncidentState.ESCALATED,
+                )
+                await repo.create_escalation_record(
+                    incident_id=incident_id,
+                    title="Approval Request Expired",
+                    summary=f"30-minute approval request deadline expired for plan version {body.plan_version}.",
+                    root_cause="APPROVAL_EXPIRED",
+                    escalation_reason="Approval request deadline exceeded 30 minutes",
+                    ticket_reference=f"EXP-{incident_id.hex[:8].upper()}",
+                )
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail="Approval request deadline has expired (30-minute window exceeded). Incident has been escalated.",
+            )
+
+        # 5. Check current state and version
+        if incident.state != IncidentState.PENDING_APPROVAL:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Incident is not in PENDING_APPROVAL state (current state: {incident.state.value}).",
+            )
+
+        if incident.version != body.expected_incident_version:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Incident version mismatch: expected {body.expected_incident_version}, but current version is {incident.version}.",
+            )
+
         expires_at = now + timedelta(minutes=29, seconds=55)
 
         # 5. Record decision and transition incident

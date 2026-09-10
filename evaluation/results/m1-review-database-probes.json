@@ -1,0 +1,9 @@
+{
+  "deferred_policy_precheck_passed": false,
+  "replay_of_running_execution": {
+    "same_idempotency_key": "exec:b6a80737-cb92-4bdd-a7b9-fba2ed6ad489:1:43383f68-fa41-4a19-988a-ffba6ae88fd2:1",
+    "restart_calls_before_resume": 1,
+    "restart_calls_after_resume": 1,
+    "resume_error": null
+  }
+}

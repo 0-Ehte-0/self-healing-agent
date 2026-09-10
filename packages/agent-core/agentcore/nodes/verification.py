@@ -47,14 +47,37 @@ async def verify_node(
 
     incident_id = UUID(incident_id_str)
     resource_id = UUID(state["resource_id"])
-    execution_id_raw = (
-        state.get("execution_id") or state.get("current_execution_id") or incident_id_str
-    )
-    execution_id = UUID(str(execution_id_raw))
+    execution_id_raw = state.get("execution_id") or state.get("current_execution_id")
+    if not execution_id_raw and session_factory is not None:
+        async with unit_of_work(session_factory, actor=actor) as repo:
+            import sqlalchemy as sa
+            from app.db.models import Execution
 
-    target_container_id = state.get("target_container_id")
+            latest_exec = await repo.session.scalar(
+                sa.select(Execution)
+                .where(Execution.incident_id == incident_id)
+                .order_by(Execution.created_at.desc())
+                .limit(1)
+            )
+            if latest_exec:
+                execution_id_raw = str(latest_exec.id)
+
+    execution_id = UUID(str(execution_id_raw or incident_id_str))
+
+    target_container_id = state.get("target_container_id") or state.get("container_id")
     binding_generation = state.get("binding_generation")
-    scenario_id = state.get("root_cause")
+    cause_to_scenario = {
+        "CONTAINER_STOPPED": "SCN-001",
+        "CPU_SATURATION": "SCN-002",
+        "API_UNRESPONSIVE": "SCN-003",
+    }
+    rc = state.get("root_cause")
+    scenario_id = (
+        state.get("scenario_id")
+        or state.get("verification_profile")
+        or (cause_to_scenario.get(rc) if rc else None)
+        or rc
+    )
 
     # 1. Execute Independent Telemetry Verification
     verdict_dict = await verifier.verify(

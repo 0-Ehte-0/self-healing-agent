@@ -164,6 +164,7 @@ class ControlPlaneRepository:
         correlation_key: str,
         severity: Any,
         approval_required: bool = False,
+        retry_limit: int = 2,
     ) -> Incident:
         incident = Incident(
             resource_id=resource_id,
@@ -171,6 +172,7 @@ class ControlPlaneRepository:
             severity=severity,
             state=IncidentState.DETECTED,
             approval_required=approval_required,
+            retry_limit=retry_limit,
         )
         self.session.add(incident)
         await self.session.flush()

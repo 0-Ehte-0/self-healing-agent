@@ -27,6 +27,12 @@ async def escalate_node(
     if session_factory:
         try:
             async with unit_of_work(session_factory, actor=actor) as repo:
+                from app.db.models import Incident
+
+                inc = await repo.session.get(Incident, incident_id)
+                if inc and inc.state == IncidentState.ESCALATED:
+                    return {"status": "ESCALATED", "version": inc.version}
+
                 updated = await repo.transition(
                     incident_id=incident_id,
                     expected_version=version,

@@ -60,13 +60,18 @@ async def plan_node(
             if not resource:
                 raise LookupError(f"Resource {resource_id} not found in database")
 
-            container_id = state.get("target_container_id") or resource.labels.get(
-                "container_id", "demo-api-container-id"
+            container_id = (
+                state.get("target_container_id")
+                or state.get("container_id")
+                or resource.labels.get("docker_container_id")
+                or resource.labels.get("container_id", "demo-api-container-id")
             )
             binding_generation = state.get("binding_generation") or resource.labels.get(
                 "binding_generation", 1
             )
-            service_name = resource.labels.get("compose_service", "demo-api")
+            service_name = (
+                state.get("service_name") or resource.labels.get("compose_service") or "demo-api"
+            )
 
             target_binding = TargetBinding(
                 resource_id=resource_id,
@@ -118,11 +123,28 @@ async def plan_node(
                         target=IncidentState.PLANNED,
                     )
 
+                    risk_val = (
+                        persisted_plan.risk.value
+                        if hasattr(persisted_plan.risk, "value")
+                        else str(persisted_plan.risk)
+                    )
+
                     return {
                         "current_plan_id": str(persisted_plan.id),
                         "status": "PLANNED",
                         "version": updated_incident.version,
+                        "plan_version": persisted_plan.version,
+                        "content_hash": persisted_plan.content_hash,
+                        "container_id": target_binding.container_id,
+                        "target_container_id": target_binding.container_id,
+                        "binding_generation": target_binding.binding_generation,
+                        "service_name": target_binding.service_name,
+                        "risk": risk_val,
+                        "action": "restart_container",
+                        "verification_profile": persisted_plan.verification_profile,
+                        "scenario_id": persisted_plan.verification_profile,
                     }
+
                 else:
                     # Escalation path for non-actionable causes
                     reason = (
