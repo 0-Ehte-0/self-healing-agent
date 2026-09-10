@@ -16,6 +16,7 @@ from app.db.models import (
     Incident,
     IncidentEvent,
     ModelInvocation,
+    OutboxEvent,
     Policy,
     RemediationPlan,
     RemediationStep,
@@ -23,6 +24,11 @@ from app.db.models import (
     ResourceLock,
     User,
     VerificationResult,
+    WorkerHeartbeat,
+    WorkflowCheckpoint,
+    WorkflowCheckpointWrite,
+    WorkflowLease,
+    WorkflowSchedule,
 )
 from app.domain.incidents.state_machine import validate_transition
 from sharedmodels.enums import ExecutionStatus, IncidentState
@@ -227,7 +233,7 @@ class ControlPlaneRepository:
         if incident.version != expected_version:
             raise ConflictError("Stale incident version")
         validate_transition(incident.state, target)
-        if incident.state == IncidentState.PLANNED:
+        if incident.state == IncidentState.PLANNED and target != IncidentState.ESCALATED:
             required = (
                 IncidentState.PENDING_APPROVAL
                 if incident.approval_required
@@ -253,6 +259,28 @@ class ControlPlaneRepository:
         updated = result.scalar_one_or_none()
         if updated is None:
             raise ConflictError("Concurrent incident transition")
+        if target == IncidentState.APPROVED:
+            outbox_ev = OutboxEvent(
+                id=uuid4(),
+                event_type="incident.approved",
+                aggregate_type="incident",
+                aggregate_id=incident_id,
+                aggregate_version=expected_version + 1,
+                payload={
+                    "incident_id": str(incident_id),
+                    "state": IncidentState.APPROVED.value,
+                    "version": expected_version + 1,
+                    "severity": updated.severity.value
+                    if hasattr(updated.severity, "value")
+                    else str(updated.severity),
+                    "correlation_key": updated.correlation_key,
+                    "resource_id": str(updated.resource_id),
+                },
+                status="PENDING",
+                actor=self.actor,
+            )
+            self.session.add(outbox_ev)
+            await self.session.flush()
         return updated
 
     async def record_execution(
@@ -443,4 +471,255 @@ class ControlPlaneRepository:
             ),
             "anomaly_scores": await rows(AnomalyScore, AnomalyScore.incident_id == incident_id),
             "timeline": timeline,
+        }
+
+    async def add_outbox_event(
+        self,
+        *,
+        event_type: str,
+        aggregate_type: str = "incident",
+        aggregate_id: UUID,
+        aggregate_version: int,
+        payload: dict[str, Any],
+    ) -> OutboxEvent:
+        event = OutboxEvent(
+            id=uuid4(),
+            event_type=event_type,
+            aggregate_type=aggregate_type,
+            aggregate_id=aggregate_id,
+            aggregate_version=aggregate_version,
+            payload=payload,
+            status="PENDING",
+            retry_count=0,
+            actor=self.actor,
+        )
+        self.session.add(event)
+        await self.session.flush()
+        return event
+
+    async def fetch_pending_outbox_events(
+        self, limit: int = 50, max_age_seconds: int = 300
+    ) -> list[OutboxEvent]:
+        stmt = (
+            sa.select(OutboxEvent)
+            .where(OutboxEvent.status == "PENDING")
+            .order_by(OutboxEvent.created_at.asc())
+            .limit(limit)
+            .with_for_update(skip_locked=True)
+        )
+        result = await self.session.scalars(stmt)
+        return list(result.all())
+
+    async def mark_outbox_published(self, event_id: UUID) -> None:
+        await self.session.execute(
+            sa.update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(status="PUBLISHED", published_at=sa.func.now())
+        )
+
+    async def mark_outbox_failed(self, event_id: UUID, error: str) -> None:
+        await self.session.execute(
+            sa.update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(
+                status="FAILED",
+                last_error=error,
+                retry_count=OutboxEvent.retry_count + 1,
+            )
+        )
+
+    async def acquire_incident_lease(
+        self,
+        incident_id: UUID,
+        owner: str,
+        ttl_seconds: int = 30,
+        version: int | None = None,
+    ) -> UUID:
+        token = uuid4()
+        incident = await self.session.get(Incident, incident_id)
+        if incident is None:
+            raise LookupError("Incident not found")
+        if version is not None and incident.version != version:
+            raise ConflictError(
+                f"Incident version mismatch: expected {version}, found {incident.version}"
+            )
+        current_version = incident.version
+
+        stmt = insert(WorkflowLease).values(
+            incident_id=incident_id,
+            owner=owner,
+            token=token,
+            acquired_at=sa.func.now(),
+            expires_at=sa.func.now() + timedelta(seconds=ttl_seconds),
+            incident_version=current_version,
+        )
+        result = await self.session.scalar(
+            stmt.on_conflict_do_update(
+                index_elements=[WorkflowLease.incident_id],
+                set_={
+                    "owner": owner,
+                    "token": token,
+                    "acquired_at": sa.func.now(),
+                    "expires_at": stmt.excluded.expires_at,
+                    "incident_version": current_version,
+                },
+                where=(WorkflowLease.expires_at <= sa.func.now()) | (WorkflowLease.owner == owner),
+            ).returning(WorkflowLease.token)
+        )
+        if result is None:
+            raise ConflictError("Incident is currently leased by another worker")
+        return result
+
+    async def verify_incident_lease(
+        self, incident_id: UUID, token: UUID, expected_version: int | None = None
+    ) -> bool:
+        lease = await self.session.get(WorkflowLease, incident_id)
+        if lease is None or lease.token != token:
+            return False
+        now_dt = (
+            datetime.now(lease.expires_at.tzinfo) if lease.expires_at.tzinfo else datetime.now()
+        )
+        if lease.expires_at <= now_dt:
+            return False
+        if expected_version is not None:
+            incident = await self.session.get(Incident, incident_id)
+            if incident is None or incident.version != expected_version:
+                return False
+        return True
+
+    async def renew_incident_lease(
+        self, incident_id: UUID, token: UUID, ttl_seconds: int = 30
+    ) -> bool:
+        result = await self.session.scalar(
+            sa.update(WorkflowLease)
+            .where(
+                WorkflowLease.incident_id == incident_id,
+                WorkflowLease.token == token,
+                WorkflowLease.expires_at > sa.func.now(),
+            )
+            .values(expires_at=sa.func.now() + timedelta(seconds=ttl_seconds))
+            .returning(WorkflowLease.incident_id)
+        )
+        return result is not None
+
+    async def release_incident_lease(self, incident_id: UUID, token: UUID) -> None:
+        await self.session.execute(
+            sa.delete(WorkflowLease).where(
+                WorkflowLease.incident_id == incident_id,
+                WorkflowLease.token == token,
+            )
+        )
+
+    async def create_workflow_schedule(
+        self,
+        *,
+        incident_id: UUID,
+        incident_version: int,
+        next_run_at: datetime,
+        wait_reason: str,
+        deadline: datetime | None = None,
+        resume_metadata: dict[str, Any] | None = None,
+    ) -> WorkflowSchedule:
+        schedule = WorkflowSchedule(
+            id=uuid4(),
+            incident_id=incident_id,
+            incident_version=incident_version,
+            next_run_at=next_run_at,
+            wait_reason=wait_reason,
+            deadline=deadline,
+            status="PENDING",
+            resume_metadata=resume_metadata or {},
+        )
+        self.session.add(schedule)
+        await self.session.flush()
+        return schedule
+
+    async def fetch_due_workflow_schedules(self, limit: int = 50) -> list[WorkflowSchedule]:
+        stmt = (
+            sa.select(WorkflowSchedule)
+            .where(
+                WorkflowSchedule.status == "PENDING",
+                WorkflowSchedule.next_run_at <= sa.func.now(),
+            )
+            .order_by(WorkflowSchedule.next_run_at.asc())
+            .limit(limit)
+        )
+        result = await self.session.scalars(stmt)
+        return list(result.all())
+
+    async def mark_schedule_processed_atomic(self, schedule_id: UUID) -> bool:
+        result = await self.session.scalar(
+            sa.update(WorkflowSchedule)
+            .where(
+                WorkflowSchedule.id == schedule_id,
+                WorkflowSchedule.status == "PENDING",
+            )
+            .values(status="PROCESSED")
+            .returning(WorkflowSchedule.id)
+        )
+        return result is not None
+
+    async def cancel_pending_schedules(self, incident_id: UUID) -> None:
+        await self.session.execute(
+            sa.update(WorkflowSchedule)
+            .where(
+                WorkflowSchedule.incident_id == incident_id,
+                WorkflowSchedule.status == "PENDING",
+            )
+            .values(status="CANCELLED")
+        )
+
+    async def record_worker_heartbeat(
+        self, worker_id: str, status: str = "HEALTHY", metadata: dict[str, Any] | None = None
+    ) -> None:
+        table = WorkerHeartbeat.__table__
+        stmt = insert(table).values(
+            worker_id=worker_id,
+            last_heartbeat=sa.func.now(),
+            status=status,
+            metadata=metadata or {},
+        )
+        await self.session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=[table.c.worker_id],
+                set_={
+                    "last_heartbeat": sa.func.now(),
+                    "status": status,
+                    "metadata": metadata or {},
+                },
+            )
+        )
+
+    async def get_system_status_metrics(self) -> dict[str, Any]:
+        heartbeats = list((await self.session.scalars(sa.select(WorkerHeartbeat))).all())
+        outbox_backlog = (
+            await self.session.scalar(
+                sa.select(sa.func.count(OutboxEvent.id)).where(OutboxEvent.status == "PENDING")
+            )
+            or 0
+        )
+        oldest_wakeup = await self.session.scalar(
+            sa.select(sa.func.min(WorkflowSchedule.next_run_at)).where(
+                WorkflowSchedule.status == "PENDING"
+            )
+        )
+        last_error_event = await self.session.scalar(
+            sa.select(OutboxEvent)
+            .where(OutboxEvent.status == "FAILED")
+            .order_by(OutboxEvent.created_at.desc())
+            .limit(1)
+        )
+        return {
+            "worker_heartbeats": [
+                {
+                    "worker_id": h.worker_id,
+                    "last_heartbeat": h.last_heartbeat.isoformat() if h.last_heartbeat else None,
+                    "status": h.status,
+                    "metadata": h.worker_metadata,
+                }
+                for h in heartbeats
+            ],
+            "outbox_backlog": outbox_backlog,
+            "oldest_pending_wakeup": oldest_wakeup.isoformat() if oldest_wakeup else None,
+            "last_processing_error": last_error_event.last_error if last_error_event else None,
         }

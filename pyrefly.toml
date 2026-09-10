@@ -4,5 +4,11 @@ search-path = [
     "apps/demo-worker",
     "apps/traffic-generator",
     "apps/fault-injector",
+    "apps/agent-worker",
     "packages/shared-models",
+    "packages/agent-core",
+    "packages/telemetry-client",
+    "packages/diagnosis",
 ]
+
+disable-type-errors-in-ide = true

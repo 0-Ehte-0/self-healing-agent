@@ -26,9 +26,10 @@ class Settings(BaseSettings):
     CHROMA_HOST: str = "localhost"
     CHROMA_PORT: int = 8000
 
-    # Phase 5: Webhook Secrets and Ingestion Settings
+    # Phase 5 & M1-B: Webhook Secrets and Ingestion Settings
     ALERTMANAGER_WEBHOOK_SECRET: str = "alertmanager-secret-token"
     GENERIC_EVENT_SECRET: str = "generic-secret-token"
+    SYSTEM_STATUS_SECRET: str = "system-status-secret-token"
     INCIDENT_STREAM_KEY: str = "stream:incidents"
     INCIDENT_DLQ_KEY: str = "stream:incidents:dlq"
     EVENT_DEDUP_WINDOW_SECONDS: int = 60

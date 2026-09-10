@@ -95,11 +95,16 @@ async def alertmanager_webhook(
                     incident_id_str = str(res.incident.id)
                     if res.was_created:
                         created_incidents.append(incident_id_str)
-                        # Implementation Detail #4: Publish incident created strictly when was_created is True
-                        await publisher.publish_incident_created(
-                            incident=res.incident,
-                            event_ids=[res.event.id],
-                        )
+                        try:
+                            await publisher.publish_incident_created(
+                                incident=res.incident,
+                                event_ids=[res.event.id],
+                            )
+                        except Exception as exc:
+                            logger.warning(
+                                f"Immediate Redis stream publish failed for incident {res.incident.id}: {exc}. "
+                                "Incident is safely persisted in transactional outbox for background delivery."
+                            )
                     else:
                         correlated_incidents.append(incident_id_str)
 

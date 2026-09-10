@@ -1,0 +1,28 @@
+{
+  "scenario_id": "UNKNOWN-RESOURCE",
+  "description": "Unknown or unmanaged resource fixture where container cannot be found in environment",
+  "resource_id": "99999999-9999-9999-9999-999999999999",
+  "service_name": "unknown-service",
+  "container_id": "non_existent_container_999",
+  "binding_generation": null,
+  "container": {
+    "status": "not_found",
+    "state": "not_found",
+    "exit_code": null,
+    "health_status": null
+  },
+  "metrics": {
+    "up": null,
+    "normalized_cpu": null,
+    "probe_success": null,
+    "redis_connected": null
+  },
+  "alerts": [
+    "ContainerDown"
+  ],
+  "logs": {
+    "lines": []
+  },
+  "expected_root_cause": "INSUFFICIENT_EVIDENCE",
+  "expected_actionable": false
+}

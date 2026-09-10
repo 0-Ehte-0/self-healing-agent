@@ -1,0 +1,33 @@
+{
+  "scenario_id": "SCN-002",
+  "description": "CPU saturation scenario within managed container",
+  "resource_id": "11111111-1111-1111-1111-111111111111",
+  "service_name": "demo-api",
+  "container_id": "c1a2b3c4d5e6",
+  "binding_generation": 1,
+  "container": {
+    "status": "success",
+    "state": "running",
+    "exit_code": null,
+    "health_status": "healthy"
+  },
+  "metrics": {
+    "up": 1.0,
+    "normalized_cpu": 0.92,
+    "raw_cpu_seconds_rate": 0.92,
+    "probe_success": 0.8,
+    "redis_connected": 1.0,
+    "db_connections": 3.0
+  },
+  "alerts": [
+    "HighCpuSaturation"
+  ],
+  "logs": {
+    "lines": [
+      "CPU intensive workload running in container threads",
+      "Worker process consuming 92% of CPU budget"
+    ]
+  },
+  "expected_root_cause": "CPU_SATURATION",
+  "expected_actionable": true
+}

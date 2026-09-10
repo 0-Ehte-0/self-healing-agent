@@ -79,6 +79,32 @@ class CorrelationEngine:
         # 4. Idempotently link event to incident
         await self.repo.link_event(incident.id, event_record.id)
 
+        if was_created:
+            state_str = (
+                incident.state.value if hasattr(incident.state, "value") else str(incident.state)
+            )
+            sev_str = (
+                incident.severity.value
+                if hasattr(incident.severity, "value")
+                else str(incident.severity)
+            )
+            await self.repo.add_outbox_event(
+                event_type="incident.detected",
+                aggregate_type="incident",
+                aggregate_id=incident.id,
+                aggregate_version=incident.version,
+                payload={
+                    "event_type": "incident.detected",
+                    "incident_id": str(incident.id),
+                    "resource_id": str(incident.resource_id),
+                    "correlation_key": incident.correlation_key,
+                    "state": state_str,
+                    "severity": sev_str,
+                    "version": incident.version,
+                    "event_ids": [str(event_record.id)],
+                },
+            )
+
         action = "incident_created" if was_created else "incident_correlated"
         logger.info(
             f"Event {event_record.id} ({event_payload.event_type}) -> Incident {incident.id} "

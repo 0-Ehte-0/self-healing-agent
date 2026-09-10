@@ -5,10 +5,13 @@ from typing import Any
 
 from app.api.events import router as events_router
 from app.api.health import router as health_router
+from app.api.system import router as system_router
 from app.api.webhooks.alertmanager import router as alertmanager_router
 from app.core.config import get_settings
 from app.core.errors import AppError, app_error_handler
 from app.core.logging import CorrelationIdMiddleware, setup_logging
+from app.db.session import AsyncSessionLocal
+from app.workers.outboxpublisher import OutboxPublisherWorker
 from fastapi import Body, FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
@@ -25,9 +28,12 @@ ALERT_NOTIFICATIONS = Counter(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    # Startup validation and initializations
+    # Startup validation and initializations: start OutboxPublisherWorker
+    outbox_worker = OutboxPublisherWorker(AsyncSessionLocal)
+    await outbox_worker.start()
     yield
     # Shutdown / teardown connections
+    await outbox_worker.stop()
 
 
 app = FastAPI(
@@ -53,6 +59,7 @@ app.add_middleware(
 app.include_router(health_router, prefix="")
 app.include_router(alertmanager_router, prefix="")
 app.include_router(events_router, prefix="")
+app.include_router(system_router, prefix="")
 
 
 @app.get("/metrics")

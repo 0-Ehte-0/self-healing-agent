@@ -109,6 +109,25 @@ services:
     networks:
       - self-healing-net
 
+  agent-worker:
+    build:
+      context: .
+      dockerfile: apps/agent-worker/Dockerfile
+    container_name: self-healing-agent-worker
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://control_app:local-control-app@postgres:5432/control_plane
+      - REDIS_URL=redis://redis:6379/0
+      - WORKER_ID=worker-compose-1
+      - LOG_LEVEL=INFO
+    depends_on:
+      - postgres
+      - redis
+      - control-plane
+    networks:
+      - self-healing-net
+
   demo-api:
     build:
       context: .

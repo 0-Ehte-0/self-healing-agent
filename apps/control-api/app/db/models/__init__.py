@@ -108,6 +108,8 @@ class EvidenceItem(Record, Base):
     kind: Mapped[str] = mapped_column(sa.String(32))
     source: Mapped[str] = mapped_column(sa.String(512))
     observed_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    unit: Mapped[str | None] = mapped_column(sa.String(32), nullable=True, default=None)
+    binding_generation: Mapped[int | None] = mapped_column(sa.Integer, nullable=True, default=None)
     content: Mapped[dict[str, Any]] = mapped_column(JSONB)
     sha256: Mapped[str] = mapped_column(sa.String(64))
     actor: Mapped[str] = mapped_column(sa.String(128))
@@ -119,6 +121,13 @@ class Diagnosis(Record, Base):
     root_cause: Mapped[str] = mapped_column(sa.String(128))
     confidence: Mapped[float]
     evidence_ids: Mapped[list[str]] = mapped_column(JSONB)
+    rule_id: Mapped[str | None] = mapped_column(sa.String(64), nullable=True, default=None)
+    rule_version: Mapped[str | None] = mapped_column(sa.String(16), nullable=True, default=None)
+    contradictory_findings: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    escalation_reason: Mapped[str | None] = mapped_column(sa.Text, nullable=True, default=None)
+    parent_diagnosis_id: Mapped[UUID | None] = mapped_column(
+        sa.ForeignKey("diagnoses.id"), nullable=True, default=None
+    )
     reasoning: Mapped[dict[str, Any]] = mapped_column(JSONB)
     actor: Mapped[str] = mapped_column(sa.String(128))
     __table_args__ = (sa.CheckConstraint("confidence BETWEEN 0 AND 1"),)
@@ -271,3 +280,92 @@ class AnomalyScore(Record, Base):
         sa.UniqueConstraint("resource_id", "model_version", "window_start", "window_end"),
         sa.CheckConstraint("window_end > window_start"),
     )
+
+
+class OutboxEvent(Record, Base):
+    __tablename__ = "outbox_events"
+    event_type: Mapped[str] = mapped_column(sa.String(64))
+    aggregate_type: Mapped[str] = mapped_column(sa.String(64), default="incident")
+    aggregate_id: Mapped[UUID] = mapped_column()
+    aggregate_version: Mapped[int] = mapped_column()
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(sa.String(32), default="PENDING")
+    retry_count: Mapped[int] = mapped_column(default=0)
+    last_error: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    __table_args__ = (
+        sa.Index("ix_outbox_events_status_created", "status", "created_at"),
+        sa.Index("ix_outbox_events_aggregate", "aggregate_id", "aggregate_version"),
+        sa.CheckConstraint("status IN ('PENDING', 'PUBLISHED', 'FAILED')"),
+    )
+
+
+class WorkflowLease(Base):
+    __tablename__ = "workflow_leases"
+    incident_id: Mapped[UUID] = mapped_column(
+        sa.ForeignKey("incidents.id", ondelete="CASCADE"), primary_key=True
+    )
+    owner: Mapped[str] = mapped_column(sa.String(128))
+    token: Mapped[UUID] = mapped_column(unique=True, default=uuid4)
+    acquired_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+    expires_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    incident_version: Mapped[int] = mapped_column()
+    __table_args__ = (
+        sa.CheckConstraint("expires_at > acquired_at", name="chk_workflow_lease_expiry"),
+    )
+
+
+class WorkflowSchedule(Record, Base):
+    __tablename__ = "workflow_schedules"
+    incident_id: Mapped[UUID] = mapped_column(
+        sa.ForeignKey("incidents.id", ondelete="CASCADE"), index=True
+    )
+    incident_version: Mapped[int] = mapped_column()
+    next_run_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    wait_reason: Mapped[str] = mapped_column(sa.String(64))
+    deadline: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(sa.String(32), default="PENDING")
+    resume_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    __table_args__ = (
+        sa.Index("ix_workflow_schedules_status_next_run", "status", "next_run_at"),
+        sa.CheckConstraint("status IN ('PENDING', 'PROCESSED', 'CANCELLED')"),
+    )
+
+
+class WorkflowCheckpoint(Base):
+    __tablename__ = "workflow_checkpoints"
+    thread_id: Mapped[str] = mapped_column(sa.String(128), primary_key=True)
+    checkpoint_ns: Mapped[str] = mapped_column(sa.String(128), primary_key=True, default="")
+    checkpoint_id: Mapped[str] = mapped_column(sa.String(128), primary_key=True)
+    parent_checkpoint_id: Mapped[str | None] = mapped_column(sa.String(128), nullable=True)
+    type: Mapped[str] = mapped_column(sa.String(64))
+    checkpoint: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    checkpoint_metadata: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+
+
+class WorkflowCheckpointWrite(Base):
+    __tablename__ = "workflow_checkpoint_writes"
+    thread_id: Mapped[str] = mapped_column(sa.String(128), primary_key=True)
+    checkpoint_ns: Mapped[str] = mapped_column(sa.String(128), primary_key=True, default="")
+    checkpoint_id: Mapped[str] = mapped_column(sa.String(128), primary_key=True)
+    task_id: Mapped[str] = mapped_column(sa.String(128), primary_key=True)
+    idx: Mapped[int] = mapped_column(primary_key=True)
+    channel: Mapped[str] = mapped_column(sa.String(128))
+    type: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
+    value: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
+class WorkerHeartbeat(Base):
+    __tablename__ = "worker_heartbeats"
+    worker_id: Mapped[str] = mapped_column(sa.String(128), primary_key=True)
+    last_heartbeat: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+    status: Mapped[str] = mapped_column(sa.String(32), default="HEALTHY")
+    worker_metadata: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, default=dict)

@@ -69,10 +69,16 @@ async def ingest_generic_event(
             res = await engine.ingest_event(norm_event)
 
             if res.incident and res.was_created:
-                await publisher.publish_incident_created(
-                    incident=res.incident,
-                    event_ids=[res.event.id],
-                )
+                try:
+                    await publisher.publish_incident_created(
+                        incident=res.incident,
+                        event_ids=[res.event.id],
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        f"Immediate Redis stream publish failed for incident {res.incident.id}: {exc}. "
+                        "Incident is safely persisted in transactional outbox for background delivery."
+                    )
 
             return {
                 "status": "ok",
