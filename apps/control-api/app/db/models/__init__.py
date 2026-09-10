@@ -409,3 +409,54 @@ class DryRunRecord(Record, Base):
     validation_result: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     simulated_steps: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
     actor: Mapped[str] = mapped_column(sa.String(128))
+
+
+class PolicyDecision(Record, Base):
+    __tablename__ = "policy_decisions"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    plan_id: Mapped[UUID] = mapped_column(sa.ForeignKey("remediation_plans.id"))
+    plan_version: Mapped[int] = mapped_column()
+    policy_id: Mapped[UUID | None] = mapped_column(
+        sa.ForeignKey("policies.id"), nullable=True, default=None
+    )
+    policy_version: Mapped[int] = mapped_column()
+    content_hash: Mapped[str] = mapped_column(sa.String(64))
+    container_id: Mapped[str] = mapped_column(sa.String(128))
+    binding_generation: Mapped[int] = mapped_column(default=1)
+    decision: Mapped[str] = mapped_column(sa.String(32))
+    reason_codes: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    rule_results: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    evaluated_facts: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    evidence_freshness_seconds: Mapped[float | None] = mapped_column(nullable=True, default=None)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+    __table_args__ = (
+        sa.Index("ix_policy_decisions_plan", "plan_id", "plan_version"),
+        sa.CheckConstraint("decision IN ('ALLOW', 'DENY', 'REQUIRE_APPROVAL', 'DEFER')"),
+    )
+
+
+class UserSession(Record, Base):
+    __tablename__ = "user_sessions"
+    session_token: Mapped[str] = mapped_column(sa.String(64), unique=True, index=True)
+    user_id: Mapped[UUID] = mapped_column(sa.ForeignKey("users.id"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), index=True)
+    last_accessed_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+    is_revoked: Mapped[bool] = mapped_column(default=False)
+    csrf_token: Mapped[str] = mapped_column(sa.String(64))
+    ip_address: Mapped[str | None] = mapped_column(sa.String(64), nullable=True, default=None)
+    user_agent: Mapped[str | None] = mapped_column(sa.String(256), nullable=True, default=None)
+
+
+class AutomationControl(Base):
+    __tablename__ = "automation_controls"
+    id: Mapped[str] = mapped_column(sa.String(64), primary_key=True, default="global")
+    mode: Mapped[str] = mapped_column(sa.String(32), default="APPROVAL_REQUIRED")
+    emergency_stopped_resources: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    updated_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()
+    )
+    updated_by: Mapped[str] = mapped_column(sa.String(128), default="system:init")
+    reason: Mapped[str] = mapped_column(sa.Text, default="Initial startup state")
+    __table_args__ = (sa.CheckConstraint("mode IN ('DISABLED', 'APPROVAL_REQUIRED', 'AUTOMATIC')"),)

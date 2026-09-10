@@ -1,6 +1,6 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -10,6 +10,7 @@ from app.db.models import (
     Approval,
     AttentionItem,
     AuditEntry,
+    AutomationControl,
     Diagnosis,
     DryRunRecord,
     EscalationRecord,
@@ -21,11 +22,13 @@ from app.db.models import (
     ModelInvocation,
     OutboxEvent,
     Policy,
+    PolicyDecision,
     RemediationPlan,
     RemediationStep,
     Resource,
     ResourceLock,
     User,
+    UserSession,
     VerificationResult,
     WorkerHeartbeat,
     WorkflowCheckpoint,
@@ -67,18 +70,21 @@ class ControlPlaneRepository:
         if type(record) not in {
             Resource,
             User,
+            UserSession,
             EvidenceItem,
             Diagnosis,
             RemediationPlan,
             RemediationStep,
             VerificationResult,
             Policy,
+            PolicyDecision,
             Approval,
             ModelInvocation,
             AnomalyScore,
             AttentionItem,
             EscalationRecord,
             DryRunRecord,
+            AutomationControl,
         }:
             raise TypeError("Use the specialized repository method for this record")
         if hasattr(record, "actor"):
@@ -866,3 +872,150 @@ class ControlPlaneRepository:
             ).all()
         )
         return plan, steps
+
+    async def record_policy_decision(
+        self,
+        *,
+        incident_id: UUID,
+        plan_id: UUID,
+        plan_version: int,
+        policy_id: UUID | None = None,
+        policy_version: int,
+        content_hash: str,
+        container_id: str,
+        binding_generation: int = 1,
+        decision: str,
+        reason_codes: list[str],
+        rule_results: list[dict[str, Any]],
+        evaluated_facts: dict[str, Any],
+        evidence_freshness_seconds: float | None = None,
+    ) -> PolicyDecision:
+        p_decision = PolicyDecision(
+            id=uuid4(),
+            incident_id=incident_id,
+            plan_id=plan_id,
+            plan_version=plan_version,
+            policy_id=policy_id,
+            policy_version=policy_version,
+            content_hash=content_hash,
+            container_id=container_id,
+            binding_generation=binding_generation,
+            decision=decision,
+            reason_codes=reason_codes,
+            rule_results=rule_results,
+            evaluated_facts=evaluated_facts,
+            evidence_freshness_seconds=evidence_freshness_seconds,
+            actor=self.actor,
+        )
+        self.session.add(p_decision)
+        await self.session.flush()
+        return p_decision
+
+    async def get_latest_policy_decision(
+        self, incident_id: UUID, plan_id: UUID | None = None
+    ) -> PolicyDecision | None:
+        stmt = sa.select(PolicyDecision).where(PolicyDecision.incident_id == incident_id)
+        if plan_id:
+            stmt = stmt.where(PolicyDecision.plan_id == plan_id)
+        stmt = stmt.order_by(PolicyDecision.created_at.desc()).limit(1)
+        return await self.session.scalar(stmt)
+
+    async def get_automation_controls(self) -> AutomationControl:
+        control = await self.session.get(AutomationControl, "global")
+        if control is None:
+            now = datetime.now(UTC)
+            control = AutomationControl(
+                id="global",
+                mode="APPROVAL_REQUIRED",
+                emergency_stopped_resources=[],
+                updated_at=now,
+                updated_by=self.actor,
+                reason="Default initial automation mode",
+            )
+            self.session.add(control)
+            await self.session.flush()
+        return control
+
+    async def update_automation_controls(
+        self,
+        *,
+        mode: str,
+        emergency_stopped_resources: list[str] | None = None,
+        reason: str,
+    ) -> AutomationControl:
+        control = await self.get_automation_controls()
+        control.mode = mode
+        if emergency_stopped_resources is not None:
+            control.emergency_stopped_resources = emergency_stopped_resources
+        control.reason = reason
+        control.updated_by = self.actor
+        control.updated_at = datetime.now(UTC)
+        await self.session.flush()
+        return control
+
+    async def create_session(
+        self,
+        *,
+        user_id: UUID,
+        session_token: str,
+        csrf_token: str,
+        expires_at: datetime,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> UserSession:
+        session_record = UserSession(
+            id=uuid4(),
+            user_id=user_id,
+            session_token=session_token,
+            csrf_token=csrf_token,
+            expires_at=expires_at,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            is_revoked=False,
+            actor=self.actor,
+        )
+        self.session.add(session_record)
+        await self.session.flush()
+        return session_record
+
+    async def get_session(self, session_token: str) -> UserSession | None:
+        return await self.session.scalar(
+            sa.select(UserSession).where(
+                UserSession.session_token == session_token,
+                UserSession.is_revoked == False,  # noqa: E712
+            )
+        )
+
+    async def revoke_session(self, session_token: str) -> None:
+        await self.session.execute(
+            sa.update(UserSession)
+            .where(UserSession.session_token == session_token)
+            .values(is_revoked=True)
+        )
+
+    async def record_approval(
+        self,
+        *,
+        incident_id: UUID,
+        plan_id: UUID,
+        plan_version: int,
+        approver_id: UUID,
+        decision: str,
+        rejection_reason: str | None,
+        expires_at: datetime,
+        created_at: datetime | None = None,
+    ) -> Approval:
+        creation_time = created_at or datetime.now(UTC)
+        approval = Approval(
+            id=uuid4(),
+            plan_id=plan_id,
+            plan_version=plan_version,
+            approver_id=approver_id,
+            decision=decision,
+            rejection_reason=rejection_reason,
+            created_at=creation_time,
+            expires_at=expires_at,
+        )
+        self.session.add(approval)
+        await self.session.flush()
+        return approval

@@ -36,7 +36,12 @@ async def seed(factory=AsyncSessionLocal):
                         managed=False,
                     )
                 )
-        for username, role in [("approver", UserRole.APPROVER), ("viewer", UserRole.VIEWER)]:
+        for username, role in [
+            ("admin", UserRole.ADMIN),
+            ("approver", UserRole.APPROVER),
+            ("operator", UserRole.OPERATOR),
+            ("viewer", UserRole.VIEWER),
+        ]:
             if not await repo.session.scalar(sa.select(User).where(User.username == username)):
                 password = os.getenv(
                     f"SEED_{username.upper()}_PASSWORD", f"local-{username}-change-me"
@@ -78,6 +83,34 @@ async def seed(factory=AsyncSessionLocal):
                         enabled=True,
                     )
                 )
+            # M1-E Documented Policy Profile: Version 2
+            if not await repo.session.scalar(
+                sa.select(Policy).where(Policy.name == name, Policy.version == 2)
+            ):
+                await repo.add(
+                    Policy(
+                        name=name,
+                        version=2,
+                        environment="local",
+                        action=action,
+                        risk=RiskLevel.LOW,
+                        rules={
+                            "approval_required": True,
+                            "auto_approval_confidence_threshold": 0.85,
+                            "min_approval_confidence_threshold": 0.60,
+                            "retry_limit": 2,
+                            "cooldown_seconds": 600,
+                            "allowed_environments": ["local"],
+                            "allowed_targets": ["demo-api"],
+                            "require_low_risk_for_approval": True,
+                            "evidence_freshness_limit_seconds": 300,
+                        },
+                        enabled=True,
+                    )
+                )
+
+        # M1-E Initial Automation Control
+        await repo.get_automation_controls()
 
 
 async def main():

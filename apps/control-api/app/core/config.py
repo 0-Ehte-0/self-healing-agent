@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     EVENT_DEDUP_WINDOW_SECONDS: int = 60
     ALERT_CORRELATION_WINDOW_SECONDS: int = 300
 
+    # M1-E CORS and Session Settings
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
     @field_validator("LOG_LEVEL")
     @classmethod
     def validate_log_level(cls, v: str) -> str:

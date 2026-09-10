@@ -1,4 +1,5 @@
 import os
+import sys
 from collections.abc import AsyncGenerator
 
 from app.core.config import get_settings
@@ -8,8 +9,9 @@ from sqlalchemy.pool import NullPool
 settings = get_settings()
 
 engine_kwargs: dict = {}
-if settings.ENV == "testing" or "PYTEST_CURRENT_TEST" in os.environ:
+if settings.ENV == "testing" or "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules:
     engine_kwargs["poolclass"] = NullPool
+
 else:
     engine_kwargs["pool_pre_ping"] = True
     engine_kwargs["pool_size"] = 10

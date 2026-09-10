@@ -3,6 +3,9 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
+from app.api.approvals import router as approvals_router
+from app.api.auth import router as auth_router
+from app.api.automation import router as automation_router
 from app.api.events import router as events_router
 from app.api.health import router as health_router
 from app.api.system import router as system_router
@@ -49,7 +52,7 @@ app.add_exception_handler(AppError, app_error_handler)  # type: ignore
 app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS or ["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,6 +63,9 @@ app.include_router(health_router, prefix="")
 app.include_router(alertmanager_router, prefix="")
 app.include_router(events_router, prefix="")
 app.include_router(system_router, prefix="")
+app.include_router(auth_router, prefix="")
+app.include_router(approvals_router, prefix="")
+app.include_router(automation_router, prefix="")
 
 
 @app.get("/metrics")

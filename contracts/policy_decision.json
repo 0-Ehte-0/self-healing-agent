@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PolicyDecisionContract",
+  "type": "object",
+  "required": [
+    "decision",
+    "policy_name",
+    "policy_version",
+    "plan_id",
+    "plan_version",
+    "content_hash",
+    "container_id",
+    "binding_generation",
+    "evaluated_facts",
+    "rule_results",
+    "reason_codes"
+  ],
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["ALLOW", "DENY", "REQUIRE_APPROVAL", "DEFER"]
+    },
+    "policy_name": {
+      "type": "string"
+    },
+    "policy_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "plan_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "plan_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "content_hash": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "container_id": {
+      "type": "string"
+    },
+    "binding_generation": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evaluated_facts": {
+      "type": "object"
+    },
+    "rule_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_name", "passed", "reason_code", "message"],
+        "properties": {
+          "rule_name": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "observed_value": {},
+          "threshold": {},
+          "reason_code": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "defer_until": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "wait_reason": {
+      "type": ["string", "null"]
+    }
+  },
+  "additionalProperties": false
+}

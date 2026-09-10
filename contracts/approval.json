@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ApprovalContract",
+  "type": "object",
+  "required": [
+    "incident_id",
+    "plan_version",
+    "expected_incident_version",
+    "decision",
+    "idempotency_key"
+  ],
+  "properties": {
+    "incident_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "plan_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "expected_incident_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["APPROVE", "REJECT"]
+    },
+    "content_hash": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "rejection_reason": {
+      "type": "string"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

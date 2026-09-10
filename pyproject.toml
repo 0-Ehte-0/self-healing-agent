@@ -38,4 +38,5 @@ pythonpath = [
     "packages/telemetry-client",
     "packages/diagnosis",
     "packages/action-catalog",
+    "packages/policy-engine",
 ]
