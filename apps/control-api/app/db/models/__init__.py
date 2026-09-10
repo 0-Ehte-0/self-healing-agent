@@ -201,11 +201,22 @@ class Execution(Record, Base):
 class VerificationResult(Record, Base):
     __tablename__ = "verification_results"
     execution_id: Mapped[UUID] = mapped_column(sa.ForeignKey("executions.id"), index=True)
+    incident_id: Mapped[UUID | None] = mapped_column(
+        sa.ForeignKey("incidents.id"), index=True, nullable=True, default=None
+    )
+    profile_version: Mapped[str | None] = mapped_column(sa.String(32), nullable=True, default=None)
+    attempt_number: Mapped[int] = mapped_column(sa.Integer, default=1)
     passed: Mapped[bool]
     window_start: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
     window_end: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    warm_up_duration_seconds: Mapped[float | None] = mapped_column(
+        sa.Float, nullable=True, default=None
+    )
+    stabilization_resets: Mapped[int] = mapped_column(sa.Integer, default=0)
     health_score: Mapped[float]
     checks: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    samples: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    attribution: Mapped[str] = mapped_column(sa.String(32), default="AGENT_HEALED")
     actor: Mapped[str] = mapped_column(sa.String(128))
     __table_args__ = (
         sa.CheckConstraint("health_score BETWEEN 0 AND 1 AND window_end >= window_start"),

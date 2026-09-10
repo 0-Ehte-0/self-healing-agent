@@ -144,12 +144,15 @@ async def execute_node(
 
     if outcome.status == ExecutionOutcomeStatus.SUCCEEDED:
         # Transition EXECUTING -> VERIFYING
+        cur_v = state.get("version", 1)
         async with unit_of_work(session_factory, actor=actor) as repo:
             inc = await repo.session.get(Incident, incident_id)
             if inc and inc.state == IncidentState.EXECUTING:
-                await repo.transition(incident_id, inc.version, IncidentState.VERIFYING)
+                inc = await repo.transition(incident_id, inc.version, IncidentState.VERIFYING)
+                cur_v = inc.version
         return {
             "status": "EXECUTED",
+            "version": cur_v,
             "attempts": attempt,
             "current_step_id": str(intent.step_id),
             "execution_id": str(outcome.execution_id) if outcome.execution_id else None,

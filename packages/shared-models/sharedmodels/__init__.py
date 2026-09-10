@@ -18,16 +18,28 @@ from sharedmodels.plan import (
     RemediationStepSchema,
     TargetBinding,
 )
+from sharedmodels.verification import (
+    CheckObservation,
+    CheckStatus,
+    EvaluationSample,
+    RecoveryAttribution,
+    VerificationProfile,
+    VerificationVerdict,
+)
 
 __all__ = [
+    "CheckObservation",
+    "CheckStatus",
     "DiagnosisSchema",
     "DryRunSchema",
+    "EvaluationSample",
     "EvidenceBundle",
     "EvidenceItemSchema",
     "EvidenceKind",
     "EventSource",
     "ExecutionStatus",
     "IncidentState",
+    "RecoveryAttribution",
     "RemediationPlanSchema",
     "RemediationStepSchema",
     "RiskLevel",
@@ -35,4 +47,6 @@ __all__ = [
     "Severity",
     "TargetBinding",
     "UserRole",
+    "VerificationProfile",
+    "VerificationVerdict",
 ]

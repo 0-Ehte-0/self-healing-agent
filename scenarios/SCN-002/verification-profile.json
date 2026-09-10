@@ -1,0 +1,38 @@
+{
+  "profile_id": "SCN-002",
+  "version": "1.0",
+  "description": "Verification profile for CPU Saturation (SCN-002)",
+  "evaluation_interval_seconds": 15,
+  "stabilization_window_seconds": 90,
+  "min_consecutive_passing_samples": 7,
+  "max_verification_duration_seconds": 300,
+  "sample_freshness_limit_seconds": 30,
+  "readiness": {
+    "required_consecutive_successes": 3,
+    "max_latency_seconds": 0.200,
+    "path": "/health/ready",
+    "expected_status": 200
+  },
+  "traffic": {
+    "min_requests_per_window": 20,
+    "window_seconds": 60,
+    "baseline_success_rate_min": 0.98,
+    "baseline_requests_per_sec_min": 5.0,
+    "max_p95_latency_seconds": 0.200
+  },
+  "cpu": {
+    "max_saturation": 0.75,
+    "window_seconds": 30,
+    "consecutive_windows": 2,
+    "cpu_budget_cores": 1.0
+  },
+  "alerts": {
+    "prohibited_active_alerts": ["HighCpuSaturation"]
+  },
+  "weights": {
+    "alerts": 0.25,
+    "error_rate": 0.25,
+    "latency": 0.25,
+    "readiness": 0.25
+  }
+}

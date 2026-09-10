@@ -60,6 +60,18 @@ async def unit_of_work(
         yield ControlPlaneRepository(session, actor)
 
 
+def _json_safe(val: Any) -> Any:
+    if isinstance(val, dict):
+        return {k: _json_safe(v) for k, v in val.items()}
+    if isinstance(val, (list, tuple, set)):
+        return [_json_safe(v) for v in val]
+    if hasattr(val, "model_dump"):
+        return _json_safe(val.model_dump(mode="json"))
+    if hasattr(val, "isoformat"):
+        return val.isoformat()
+    return val
+
+
 class ControlPlaneRepository:
     def __init__(self, session: AsyncSession, actor: str):
         self.session = session
@@ -418,6 +430,44 @@ class ControlPlaneRepository:
             raise ConflictError("Concurrent execution transition")
         return updated
 
+    async def record_verification_result(
+        self,
+        *,
+        execution_id: UUID,
+        incident_id: UUID | None = None,
+        passed: bool,
+        window_start: datetime,
+        window_end: datetime,
+        health_score: float,
+        checks: dict[str, Any],
+        profile_version: str | None = "1.0",
+        attempt_number: int = 1,
+        warm_up_duration_seconds: float | None = None,
+        stabilization_resets: int = 0,
+        samples: list[dict[str, Any]] | None = None,
+        attribution: str = "AGENT_HEALED",
+    ) -> VerificationResult:
+        result = VerificationResult(
+            id=uuid4(),
+            execution_id=execution_id,
+            incident_id=incident_id,
+            passed=passed,
+            window_start=window_start,
+            window_end=window_end,
+            health_score=health_score,
+            checks=_json_safe(checks) if isinstance(checks, dict) else {},
+            profile_version=profile_version,
+            attempt_number=attempt_number,
+            warm_up_duration_seconds=warm_up_duration_seconds,
+            stabilization_resets=stabilization_resets,
+            samples=_json_safe(samples) or [],
+            attribution=attribution,
+            actor=self.actor,
+        )
+        self.session.add(result)
+        await self.session.flush()
+        return result
+
     async def acquire_lock(self, resource_id: UUID, seconds: int = 120) -> UUID:
         if not 1 <= seconds <= 3600:
             raise ValueError("Lock duration must be between 1 and 3600 seconds")
@@ -497,7 +547,9 @@ class ControlPlaneRepository:
             "approvals": await rows(Approval, Approval.plan_id.in_(plan_ids)),
             "executions": executions,
             "verifications": await rows(
-                VerificationResult, VerificationResult.execution_id.in_(execution_ids)
+                VerificationResult,
+                (VerificationResult.execution_id.in_(execution_ids))
+                | (VerificationResult.incident_id == incident_id),
             ),
             "model_invocations": await rows(
                 ModelInvocation, ModelInvocation.incident_id == incident_id

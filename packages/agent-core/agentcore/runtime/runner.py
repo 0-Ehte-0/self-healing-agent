@@ -53,6 +53,33 @@ class WorkflowRunner:
             self.node_overrides["execute"] = partial(
                 execute_node, session_factory=self.session_factory, actor=self.worker_id
             )
+        if "verify" not in self.node_overrides:
+            from functools import partial
+
+            from agentcore.nodes.verification import verify_node
+
+            self.node_overrides["verify"] = partial(
+                verify_node,
+                session_factory=self.session_factory,
+                scheduler=self.scheduler,
+                actor=self.worker_id,
+            )
+        if "resolve" not in self.node_overrides:
+            from functools import partial
+
+            from agentcore.nodes.resolution import resolve_node
+
+            self.node_overrides["resolve"] = partial(
+                resolve_node, session_factory=self.session_factory, actor=self.worker_id
+            )
+        if "escalate" not in self.node_overrides:
+            from functools import partial
+
+            from agentcore.nodes.escalation import escalate_node
+
+            self.node_overrides["escalate"] = partial(
+                escalate_node, session_factory=self.session_factory, actor=self.worker_id
+            )
         self.workflow = build_incident_workflow(
             checkpointer=self.checkpointer,
             node_overrides=self.node_overrides,
@@ -166,5 +193,8 @@ class WorkflowRunner:
                     resume_metadata={"is_resumed_from_approval": True},
                 )
                 logger.info(f"Incident {incident_id} paused awaiting approval. Lease released.")
+
+            if result_state.get("wait_reason") == "COOLDOWN":
+                logger.info(f"Incident {incident_id} paused in cooldown. Lease released.")
 
             return result_state

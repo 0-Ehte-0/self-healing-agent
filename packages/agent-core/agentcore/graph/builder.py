@@ -148,6 +148,8 @@ def build_incident_workflow(
 
     # 6. Conditional routing from verify
     def route_after_verify(state: IncidentGraphState) -> str:
+        if state.get("wait_reason") == "COOLDOWN":
+            return END
         if state.get("verification_passed") is True:
             return "resolve"
         if state.get("retry_eligible") is True:
@@ -159,6 +161,7 @@ def build_incident_workflow(
         "verify",
         route_after_verify,
         {
+            END: END,
             "resolve": "resolve",
             "diagnose": "diagnose",
             "escalate": "escalate",
