@@ -45,6 +45,14 @@ class WorkflowRunner:
             self.node_overrides["plan"] = partial(
                 plan_node, session_factory=self.session_factory, actor=self.worker_id
             )
+        if "execute" not in self.node_overrides:
+            from functools import partial
+
+            from agentcore.nodes.execution import execute_node
+
+            self.node_overrides["execute"] = partial(
+                execute_node, session_factory=self.session_factory, actor=self.worker_id
+            )
         self.workflow = build_incident_workflow(
             checkpointer=self.checkpointer,
             node_overrides=self.node_overrides,

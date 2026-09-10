@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "provider-adapters"
+version = "0.1.0"
+description = "Restricted provider adapters, Docker execution engine, and outcome reconciliation."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "docker>=7.0.0",
+    "pydantic>=2.0.0",
+    "sqlalchemy>=2.0.0",
+]

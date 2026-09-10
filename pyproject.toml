@@ -39,4 +39,5 @@ pythonpath = [
     "packages/diagnosis",
     "packages/action-catalog",
     "packages/policy-engine",
+    "packages/provider-adapters",
 ]

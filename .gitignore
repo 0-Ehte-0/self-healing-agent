@@ -55,3 +55,7 @@ project.md
 suggestions.md
 
 docs/*
+!docs/decisions/
+!docs/decisions/**
+!docs/m1/
+!docs/m1/**

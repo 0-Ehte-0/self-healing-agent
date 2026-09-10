@@ -172,8 +172,15 @@ class RemediationStep(Record, Base):
 class Execution(Record, Base):
     __tablename__ = "executions"
     incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    plan_id: Mapped[UUID | None] = mapped_column(
+        sa.ForeignKey("remediation_plans.id"), nullable=True, default=None
+    )
     step_id: Mapped[UUID] = mapped_column(sa.ForeignKey("remediation_steps.id"))
     resource_id: Mapped[UUID] = mapped_column(sa.ForeignKey("resources.id"))
+    attempt_number: Mapped[int] = mapped_column(sa.Integer, default=1)
+    container_id: Mapped[str | None] = mapped_column(sa.String(128), nullable=True, default=None)
+    binding_generation: Mapped[int | None] = mapped_column(sa.Integer, nullable=True, default=None)
+    lock_token: Mapped[UUID | None] = mapped_column(sa.UUID, nullable=True, default=None)
     idempotency_key: Mapped[str] = mapped_column(sa.String(256), unique=True)
     status: Mapped[ExecutionStatus] = mapped_column(
         enum(ExecutionStatus, "execution_status"), default=ExecutionStatus.PENDING
@@ -182,9 +189,13 @@ class Execution(Record, Base):
     actor: Mapped[str] = mapped_column(sa.String(128))
     pre_state: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     result: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    uncertainty_reason: Mapped[str | None] = mapped_column(sa.Text, nullable=True, default=None)
     started_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
-    __table_args__ = (sa.CheckConstraint("version >= 1"),)
+    __table_args__ = (
+        sa.CheckConstraint("version >= 1"),
+        sa.Index("ix_executions_incident_plan_attempt", "incident_id", "plan_id", "attempt_number"),
+    )
 
 
 class VerificationResult(Record, Base):
@@ -256,6 +267,11 @@ class ResourceLock(Base):
         sa.DateTime(timezone=True), server_default=sa.func.now()
     )
     expires_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    quarantined: Mapped[bool] = mapped_column(sa.Boolean, default=False)
+    quarantine_reason: Mapped[str | None] = mapped_column(sa.Text, nullable=True, default=None)
+    quarantined_at: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True, default=None
+    )
     __table_args__ = (sa.CheckConstraint("expires_at > acquired_at"),)
 
 

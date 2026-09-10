@@ -9,6 +9,9 @@ search-path = [
     "packages/agent-core",
     "packages/telemetry-client",
     "packages/diagnosis",
+    "packages/action-catalog",
+    "packages/policy-engine",
+    "packages/provider-adapters",
 ]
 
 disable-type-errors-in-ide = true

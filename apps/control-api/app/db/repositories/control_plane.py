@@ -303,6 +303,12 @@ class ControlPlaneRepository:
         resource_id: UUID,
         idempotency_key: str,
         pre_state: dict,
+        plan_id: UUID | None = None,
+        attempt_number: int = 1,
+        container_id: str | None = None,
+        binding_generation: int | None = None,
+        lock_token: UUID | None = None,
+        uncertainty_reason: str | None = None,
     ) -> Execution:
         step = await self.session.get(RemediationStep, step_id)
         plan = await self.session.get(RemediationPlan, step.plan_id) if step else None
@@ -314,20 +320,28 @@ class ControlPlaneRepository:
         ):
             raise ValueError("Execution does not match its plan, incident and resource")
 
+        actual_plan_id = plan_id or plan.id
+
         # 1. Insert and return the ORM entity directly
         query = (
             insert(Execution)
             .values(
                 id=uuid4(),
                 incident_id=incident_id,
+                plan_id=actual_plan_id,
                 step_id=step_id,
                 resource_id=resource_id,
+                attempt_number=attempt_number,
+                container_id=container_id,
+                binding_generation=binding_generation,
+                lock_token=lock_token,
                 idempotency_key=idempotency_key,
                 actor=self.actor,
                 pre_state=pre_state,
                 status=ExecutionStatus.PENDING,
                 version=1,
                 result={},
+                uncertainty_reason=uncertainty_reason,
             )
             .on_conflict_do_nothing(index_elements=[Execution.idempotency_key])
             .returning(Execution)
@@ -352,6 +366,10 @@ class ControlPlaneRepository:
             incident_id,
             step_id,
             resource_id,
+        ) or (
+            container_id is not None
+            and execution.container_id is not None
+            and execution.container_id != container_id
         ):
             raise ConflictError("Idempotency key already belongs to a different execution")
         return execution
@@ -362,6 +380,7 @@ class ControlPlaneRepository:
         expected_version: int,
         status: ExecutionStatus,
         result: dict,
+        uncertainty_reason: str | None = None,
     ) -> Execution:
         execution = await self.session.get(Execution, execution_id, populate_existing=True)
         allowed = {
@@ -380,6 +399,8 @@ class ControlPlaneRepository:
             "result": result,
             "version": expected_version + 1,
         }
+        if uncertainty_reason is not None:
+            values["uncertainty_reason"] = uncertainty_reason
 
         if status == ExecutionStatus.RUNNING:
             values["started_at"] = sa.func.now()
