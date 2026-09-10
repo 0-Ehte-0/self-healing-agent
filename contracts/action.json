@@ -1,0 +1,90 @@
+{
+  "$defs": {
+    "ActionCategory": {
+      "enum": [
+        "READ_ONLY",
+        "WORKLOAD_MUTATION",
+        "VERIFICATION_DECLARATION",
+        "OPERATOR_NOTIFICATION",
+        "LOCAL_ESCALATION"
+      ],
+      "title": "ActionCategory",
+      "type": "string"
+    },
+    "RiskLevel": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ],
+      "title": "RiskLevel",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Typed specification and contract for remediation catalog actions.",
+  "properties": {
+    "name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "version": {
+      "default": "1.0",
+      "maxLength": 16,
+      "title": "Version",
+      "type": "string"
+    },
+    "category": {
+      "$ref": "#/$defs/ActionCategory"
+    },
+    "risk": {
+      "$ref": "#/$defs/RiskLevel"
+    },
+    "timeout_seconds": {
+      "maximum": 300,
+      "minimum": 1,
+      "title": "Timeout Seconds",
+      "type": "integer"
+    },
+    "retryable": {
+      "title": "Retryable",
+      "type": "boolean"
+    },
+    "verification_profile": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Verification Profile"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "parameters_schema": {
+      "additionalProperties": true,
+      "title": "Parameters Schema",
+      "type": "object"
+    }
+  },
+  "required": [
+    "name",
+    "version",
+    "category",
+    "risk",
+    "timeout_seconds",
+    "retryable",
+    "description"
+  ],
+  "title": "ActionDefinition",
+  "type": "object"
+}

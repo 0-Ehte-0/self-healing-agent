@@ -8,8 +8,11 @@ import sqlalchemy as sa
 from app.db.models import (
     AnomalyScore,
     Approval,
+    AttentionItem,
     AuditEntry,
     Diagnosis,
+    DryRunRecord,
+    EscalationRecord,
     Event,
     EvidenceItem,
     Execution,
@@ -31,7 +34,7 @@ from app.db.models import (
     WorkflowSchedule,
 )
 from app.domain.incidents.state_machine import validate_transition
-from sharedmodels.enums import ExecutionStatus, IncidentState
+from sharedmodels.enums import ExecutionStatus, IncidentState, RiskLevel
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -73,6 +76,9 @@ class ControlPlaneRepository:
             Approval,
             ModelInvocation,
             AnomalyScore,
+            AttentionItem,
+            EscalationRecord,
+            DryRunRecord,
         }:
             raise TypeError("Use the specialized repository method for this record")
         if hasattr(record, "actor"):
@@ -723,3 +729,140 @@ class ControlPlaneRepository:
             "oldest_pending_wakeup": oldest_wakeup.isoformat() if oldest_wakeup else None,
             "last_processing_error": last_error_event.last_error if last_error_event else None,
         }
+
+    async def create_remediation_plan_with_steps(
+        self,
+        *,
+        incident_id: UUID,
+        diagnosis_id: UUID,
+        version: int = 1,
+        risk: Any = RiskLevel.LOW,
+        content_hash: str,
+        container_id: str | None = None,
+        binding_generation: int | None = None,
+        verification_profile: str | None = "m1_default_restart_profile",
+        steps_data: list[dict[str, Any]],
+    ) -> RemediationPlan:
+        diag = await self.session.get(Diagnosis, diagnosis_id)
+        if not diag or diag.incident_id != incident_id:
+            raise ValueError("Diagnosis does not belong to this incident")
+
+        plan = RemediationPlan(
+            id=uuid4(),
+            incident_id=incident_id,
+            diagnosis_id=diagnosis_id,
+            version=version,
+            risk=risk,
+            approved=False,
+            actor=self.actor,
+            content_hash=content_hash,
+            container_id=container_id,
+            binding_generation=binding_generation,
+            verification_profile=verification_profile,
+        )
+        self.session.add(plan)
+        await self.session.flush()
+
+        for step_data in steps_data:
+            step = RemediationStep(
+                id=step_data.get("id", uuid4()),
+                plan_id=plan.id,
+                resource_id=step_data["resource_id"],
+                position=step_data["position"],
+                action=step_data["action"],
+                action_schema_version=step_data.get("action_schema_version", "1.0"),
+                parameters=step_data.get("parameters", {}),
+                verification=step_data.get("verification", {}),
+            )
+            self.session.add(step)
+
+        await self.session.flush()
+        return plan
+
+    async def create_dry_run_record(
+        self,
+        *,
+        incident_id: UUID,
+        plan_id: UUID,
+        plan_version: int,
+        content_hash: str,
+        policy_evaluation: dict[str, Any],
+        validation_result: dict[str, Any],
+        simulated_steps: list[dict[str, Any]],
+    ) -> DryRunRecord:
+        record = DryRunRecord(
+            id=uuid4(),
+            incident_id=incident_id,
+            plan_id=plan_id,
+            plan_version=plan_version,
+            content_hash=content_hash,
+            policy_evaluation=policy_evaluation,
+            validation_result=validation_result,
+            simulated_steps=simulated_steps,
+            actor=self.actor,
+        )
+        self.session.add(record)
+        await self.session.flush()
+        return record
+
+    async def create_attention_item(
+        self,
+        *,
+        incident_id: UUID,
+        severity: str,
+        reason: str,
+        message: str,
+    ) -> AttentionItem:
+        item = AttentionItem(
+            id=uuid4(),
+            incident_id=incident_id,
+            severity=severity,
+            reason=reason,
+            message=message,
+            acknowledged=False,
+            actor=self.actor,
+        )
+        self.session.add(item)
+        await self.session.flush()
+        return item
+
+    async def create_escalation_record(
+        self,
+        *,
+        incident_id: UUID,
+        title: str,
+        summary: str,
+        root_cause: str,
+        escalation_reason: str,
+        ticket_reference: str,
+    ) -> EscalationRecord:
+        rec = EscalationRecord(
+            id=uuid4(),
+            incident_id=incident_id,
+            title=title,
+            summary=summary,
+            root_cause=root_cause,
+            escalation_reason=escalation_reason,
+            ticket_reference=ticket_reference,
+            actor=self.actor,
+        )
+        self.session.add(rec)
+        await self.session.flush()
+        return rec
+
+    async def get_plan_with_steps(
+        self, plan_id: UUID
+    ) -> tuple[RemediationPlan | None, list[RemediationStep]]:
+        plan = await self.session.get(RemediationPlan, plan_id)
+        if not plan:
+            return None, []
+        steps = list(
+            (
+                await self.session.scalars(
+                    sa.select(RemediationStep)
+                    .where(RemediationStep.plan_id == plan_id)
+                    .order_by(RemediationStep.position.asc())
+                )
+            ).all()
+        )
+        return plan, steps

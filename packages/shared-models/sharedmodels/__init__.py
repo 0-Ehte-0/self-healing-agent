@@ -12,17 +12,27 @@ from sharedmodels.enums import (
     UserRole,
 )
 from sharedmodels.evidence import EvidenceBundle, EvidenceItemSchema
+from sharedmodels.plan import (
+    DryRunSchema,
+    RemediationPlanSchema,
+    RemediationStepSchema,
+    TargetBinding,
+)
 
 __all__ = [
     "DiagnosisSchema",
+    "DryRunSchema",
     "EvidenceBundle",
     "EvidenceItemSchema",
     "EvidenceKind",
     "EventSource",
     "ExecutionStatus",
     "IncidentState",
+    "RemediationPlanSchema",
+    "RemediationStepSchema",
     "RiskLevel",
     "RootCause",
     "Severity",
+    "TargetBinding",
     "UserRole",
 ]

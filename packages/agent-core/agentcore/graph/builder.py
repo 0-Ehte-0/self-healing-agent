@@ -76,7 +76,21 @@ def build_incident_workflow(
             "escalate": "escalate",
         },
     )
-    workflow.add_edge("plan", "evaluate_policy")
+
+    # Conditional routing from plan (safe escalation if planning fails or escalates)
+    def route_after_plan(state: IncidentGraphState) -> str:
+        if state.get("status") == "PLANNING_ESCALATED":
+            return "escalate"
+        return "evaluate_policy"
+
+    workflow.add_conditional_edges(
+        "plan",
+        route_after_plan,
+        {
+            "evaluate_policy": "evaluate_policy",
+            "escalate": "escalate",
+        },
+    )
 
     # 3. Conditional routing from evaluate_policy
     def route_after_policy(state: IncidentGraphState) -> str:

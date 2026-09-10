@@ -13,6 +13,8 @@ dependencies = [
     "pydantic-settings>=2.2.0",
     "agent-core",
     "shared-models",
+    "diagnosis",
+    "action-catalog",
 ]
 
 [tool.setuptools.packages.find]

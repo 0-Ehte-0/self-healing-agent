@@ -141,6 +141,10 @@ class RemediationPlan(Record, Base):
     risk: Mapped[RiskLevel] = mapped_column(enum(RiskLevel, "risk_level"))
     approved: Mapped[bool] = mapped_column(default=False)
     actor: Mapped[str] = mapped_column(sa.String(128))
+    content_hash: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
+    container_id: Mapped[str | None] = mapped_column(sa.String(128), nullable=True)
+    binding_generation: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    verification_profile: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
     __table_args__ = (
         sa.UniqueConstraint("incident_id", "version"),
         sa.UniqueConstraint("id", "version", name="uq_plan_id_version"),
@@ -154,6 +158,9 @@ class RemediationStep(Record, Base):
     resource_id: Mapped[UUID] = mapped_column(sa.ForeignKey("resources.id"))
     position: Mapped[int]
     action: Mapped[str] = mapped_column(sa.String(128))
+    action_schema_version: Mapped[str] = mapped_column(
+        sa.String(16), default="1.0", server_default="1.0"
+    )
     parameters: Mapped[dict[str, Any]] = mapped_column(JSONB)
     verification: Mapped[dict[str, Any]] = mapped_column(JSONB)
     __table_args__ = (
@@ -369,3 +376,36 @@ class WorkerHeartbeat(Base):
     )
     status: Mapped[str] = mapped_column(sa.String(32), default="HEALTHY")
     worker_metadata: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, default=dict)
+
+
+class AttentionItem(Record, Base):
+    __tablename__ = "attention_items"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    severity: Mapped[str] = mapped_column(sa.String(32))
+    reason: Mapped[str] = mapped_column(sa.String(256))
+    message: Mapped[str] = mapped_column(sa.Text)
+    acknowledged: Mapped[bool] = mapped_column(default=False)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+
+
+class EscalationRecord(Record, Base):
+    __tablename__ = "escalation_records"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    title: Mapped[str] = mapped_column(sa.String(256))
+    summary: Mapped[str] = mapped_column(sa.Text)
+    root_cause: Mapped[str] = mapped_column(sa.String(128))
+    escalation_reason: Mapped[str] = mapped_column(sa.Text)
+    ticket_reference: Mapped[str] = mapped_column(sa.String(128))
+    actor: Mapped[str] = mapped_column(sa.String(128))
+
+
+class DryRunRecord(Record, Base):
+    __tablename__ = "dry_runs"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"), index=True)
+    plan_id: Mapped[UUID] = mapped_column(sa.ForeignKey("remediation_plans.id"))
+    plan_version: Mapped[int] = mapped_column()
+    content_hash: Mapped[str] = mapped_column(sa.String(64))
+    policy_evaluation: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    validation_result: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    simulated_steps: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    actor: Mapped[str] = mapped_column(sa.String(128))

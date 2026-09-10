@@ -37,6 +37,14 @@ class WorkflowRunner:
         self.lease_manager = lease_manager or IncidentLeaseManager(session_factory, worker_id)
         self.retry_policy = retry_policy or NodeRetryPolicy()
         self.node_overrides = node_overrides or {}
+        if "plan" not in self.node_overrides:
+            from functools import partial
+
+            from agentcore.nodes.planning import plan_node
+
+            self.node_overrides["plan"] = partial(
+                plan_node, session_factory=self.session_factory, actor=self.worker_id
+            )
         self.workflow = build_incident_workflow(
             checkpointer=self.checkpointer,
             node_overrides=self.node_overrides,

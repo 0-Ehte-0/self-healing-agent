@@ -16,6 +16,13 @@ COPY packages/shared-models /workspace/packages/shared-models/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -e /workspace/packages/shared-models
 
+# Install diagnosis and action-catalog
+COPY packages/diagnosis /workspace/packages/diagnosis/
+RUN pip install --no-cache-dir -e /workspace/packages/diagnosis
+
+COPY packages/action-catalog /workspace/packages/action-catalog/
+RUN pip install --no-cache-dir -e /workspace/packages/action-catalog
+
 # Install agent-core
 COPY packages/agent-core /workspace/packages/agent-core/
 RUN pip install --no-cache-dir -e /workspace/packages/agent-core

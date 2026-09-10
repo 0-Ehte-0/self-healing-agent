@@ -71,16 +71,23 @@ async def diagnose_node(
         else diag.get("escalation_reason")
     )
 
+    root_cause_val = getattr(diag, "root_cause", None) or diag.get("root_cause")
+    root_cause_str = (
+        root_cause_val.value if hasattr(root_cause_val, "value") else str(root_cause_val)
+    )
+
     if is_actionable:
         return {
             "current_diagnosis_id": diag_id,
             "status": "DIAGNOSED",
             "is_actionable": True,
+            "root_cause": root_cause_str,
         }
     else:
         return {
             "current_diagnosis_id": diag_id,
             "status": "DIAGNOSIS_ESCALATED",
             "is_actionable": False,
+            "root_cause": root_cause_str,
             "last_error": escalation_reason or "Diagnosis is non-actionable or unsupported",
         }

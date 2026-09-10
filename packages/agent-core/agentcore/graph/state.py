@@ -28,3 +28,6 @@ class IncidentGraphState(TypedDict, total=False):
     last_error: str | None
     verification_passed: bool | None
     retry_eligible: bool | None
+    target_container_id: str | None
+    binding_generation: int | None
+    root_cause: str | None
