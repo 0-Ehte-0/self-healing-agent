@@ -25,8 +25,7 @@ class CpuStressManager:
         self._stop_event = multiprocessing.Event()
         self._active: bool = False
         self._injected_at: float | None = None
-        self._last_cpu_sample: float = 0.0
-        self._initialized: bool = False
+        self._cpu_samples: dict[tuple[int, float], float] = {}
 
     def is_active(self) -> bool:
         # Clean up any dead processes
@@ -84,26 +83,21 @@ class CpuStressManager:
         try:
             current_pid = os.getpid()
             process = psutil.Process(current_pid)
-            times = process.cpu_times()
-            total_cpu = times.user + times.system
-
-            for child in process.children(recursive=True):
+            samples: dict[tuple[int, float], float] = {}
+            delta = 0.0
+            for child in [process, *process.children(recursive=True)]:
                 try:
                     ctimes = child.cpu_times()
-                    total_cpu += ctimes.user + ctimes.system
+                    identity = (child.pid, child.create_time())
+                    total = ctimes.user + ctimes.system
+                    samples[identity] = total
+                    delta += max(0.0, total - self._cpu_samples.get(identity, 0.0))
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
-
-            if not self._initialized:
-                # Initialize base count
-                self._last_cpu_sample = total_cpu
-                DEMO_API_CPU_SECONDS_TOTAL.inc(total_cpu)
-                self._initialized = True
-            else:
-                delta = total_cpu - self._last_cpu_sample
-                if delta > 0:
-                    DEMO_API_CPU_SECONDS_TOTAL.inc(delta)
-                    self._last_cpu_sample = total_cpu
+            # A removed child must not leave a high-water mark that masks the
+            # next injection. Process creation time also protects against PID reuse.
+            DEMO_API_CPU_SECONDS_TOTAL.inc(delta)
+            self._cpu_samples = samples
         except Exception as e:
             logger.warning(f"Error collecting CPU metrics: {e}")
 

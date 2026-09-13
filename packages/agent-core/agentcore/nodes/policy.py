@@ -73,6 +73,7 @@ async def evaluate_policy_node(
         attempts = state.get("attempts", 0)
         retries = state.get("retry_limit", 2)
         auto_mode_val = state.get("automation_mode")
+        emergency_stops = []
         if auto_mode_val:
             auto_mode = AutomationMode(auto_mode_val)
         elif state.get("approval_required") is not None:
@@ -96,14 +97,15 @@ async def evaluate_policy_node(
                     rsk = (
                         db_plan.risk.value if hasattr(db_plan.risk, "value") else str(db_plan.risk)
                     )
-                if not auto_mode_val:
-                    inc_check = await repo.session.get(Incident, incident_id)
-                    if inc_check:
-                        auto_mode = (
-                            AutomationMode.APPROVAL_REQUIRED
-                            if inc_check.approval_required
-                            else AutomationMode.AUTOMATIC
-                        )
+                control = await repo.get_automation_controls()
+                auto_mode = AutomationMode(control.mode)
+                emergency_stops = list(control.emergency_stopped_resources or [])
+                inc_check = await repo.session.get(Incident, incident_id)
+                if inc_check:
+                    if str(inc_check.resource_id) in emergency_stops:
+                        emergency_stops.append(svc)
+                    if inc_check.approval_required and auto_mode == AutomationMode.AUTOMATIC:
+                        auto_mode = AutomationMode.APPROVAL_REQUIRED
 
         context = EvaluationContext(
             incident_id=incident_id,
@@ -121,6 +123,7 @@ async def evaluate_policy_node(
             attempts=attempts,
             retry_limit=retries,
             automation_mode=auto_mode,
+            emergency_stopped_resources=emergency_stops,
             current_time=datetime.now(UTC),
         )
 
@@ -170,8 +173,7 @@ async def evaluate_policy_node(
             if decision.decision == PolicyDecisionOutcome.REQUIRE_APPROVAL:
                 if inc and inc.state == IncidentState.PLANNED:
                     if not inc.approval_required:
-                        inc.approval_required = True
-                        await repo.session.flush()
+                        inc = await repo.require_incident_approval(incident_id, inc.version)
                     inc = await repo.transition(
                         incident_id, inc.version, IncidentState.PENDING_APPROVAL
                     )

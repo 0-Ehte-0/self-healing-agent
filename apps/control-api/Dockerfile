@@ -17,6 +17,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -e /workspace/packages/shared-models
 
 # Install control-api
+COPY packages/action-catalog /workspace/packages/action-catalog/
+RUN pip install --no-cache-dir -e /workspace/packages/action-catalog
 COPY apps/control-api/pyproject.toml /workspace/apps/control-api/
 RUN pip install --no-cache-dir -e /workspace/apps/control-api
 

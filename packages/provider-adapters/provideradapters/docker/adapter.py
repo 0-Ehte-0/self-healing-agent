@@ -153,7 +153,11 @@ class DockerExecutionAdapter(BaseProviderAdapter):
                 raise PrecheckFailedError(
                     f"Current policy decision is DEFER: {latest_decision.reason_codes}"
                 )
-            elif latest_decision.decision == "REQUIRE_APPROVAL":
+            control = await repo.get_automation_controls()
+            if (
+                latest_decision.decision == "REQUIRE_APPROVAL"
+                or control.mode == "APPROVAL_REQUIRED"
+            ):
                 approval = await repo.session.scalar(
                     sa.select(Approval)
                     .where(

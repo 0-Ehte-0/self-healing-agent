@@ -487,3 +487,20 @@ class AutomationControl(Base):
     updated_by: Mapped[str] = mapped_column(sa.String(128), default="system:init")
     reason: Mapped[str] = mapped_column(sa.Text, default="Initial startup state")
     __table_args__ = (sa.CheckConstraint("mode IN ('DISABLED', 'APPROVAL_REQUIRED', 'AUTOMATIC')"),)
+
+
+class DemoCommand(Record, Base):
+    __tablename__ = "demo_commands"
+    idempotency_key: Mapped[UUID] = mapped_column(unique=True)
+    scenario_id: Mapped[str] = mapped_column(sa.String(16))
+    action: Mapped[str] = mapped_column(sa.String(16))
+    status: Mapped[str] = mapped_column(sa.String(16))
+    result: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    actor: Mapped[str] = mapped_column(sa.String(128))
+
+
+class VerificationObservation(Record, Base):
+    __tablename__ = "verification_observations"
+    incident_id: Mapped[UUID] = mapped_column(sa.ForeignKey("incidents.id"))
+    execution_id: Mapped[UUID] = mapped_column(sa.ForeignKey("executions.id"))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)

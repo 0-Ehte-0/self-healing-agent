@@ -72,7 +72,9 @@ class DockerResourceDiscovery:
         self, repo: ControlPlaneRepository, service_name: str = "demo-api"
     ) -> Resource | None:
         """Binds logical resource to exact runtime Docker container ID, bumping binding_generation on change."""
-        container_info = self.discover_container(compose_service=service_name)
+        container_info = self.discover_container(
+            compose_service=service_name, compose_project="self-healing-agent"
+        )
         if not container_info:
             return None
 

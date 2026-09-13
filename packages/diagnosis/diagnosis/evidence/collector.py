@@ -485,6 +485,15 @@ class EvidenceCollector:
             observed_at=bundle.collected_at,
         )
 
+        # The application CPU counter includes stress child processes. The
+        # process counter measures only the parent and is a fallback, not an
+        # override. Preserve this priority regardless of evidence ordering.
+        primary_cpu_available = any(
+            item.kind == EvidenceKind.METRICS
+            and "prometheus:cpu_rate" in item.source
+            and item.content.get("latest_value") is not None
+            for item in bundle.items
+        )
         for item in bundle.items:
             obs.evidence_id_map[item.source] = str(item.id)
 
@@ -500,7 +509,9 @@ class EvidenceCollector:
                     "prometheus:cpu_rate" in item.source or "prometheus:process_cpu" in item.source
                 ):
                     val = item.content.get("latest_value")
-                    if val is not None:
+                    if val is not None and (
+                        "prometheus:cpu_rate" in item.source or not primary_cpu_available
+                    ):
                         obs.raw_cpu_seconds_rate = val
                         # Normalized CPU = rate / cpu_budget (1.0 core)
                         obs.normalized_cpu = val / obs.cpu_budget_cores

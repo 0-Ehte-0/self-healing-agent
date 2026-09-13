@@ -105,6 +105,9 @@ async def setup_incident_context(session_factory):
     res_id = uuid4()
     cid = f"abc11223344556677889900{res_id.hex[:16]}"
     async with unit_of_work(session_factory, actor="test:setup") as repo:
+        await repo.update_automation_controls(
+            mode="AUTOMATIC", reason="Automatic adapter test setup"
+        )
         res = Resource(
             id=res_id,
             provider="compose",
@@ -219,6 +222,31 @@ async def setup_incident_context(session_factory):
 
 
 # ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_mode_changed_after_allow_requires_approval(session_factory, setup_incident_context):
+    ctx = setup_incident_context
+    cid = ctx["container_id"]
+    container = FakeDockerContainer(
+        cid,
+        "demo-api",
+        {
+            "self-healing.managed": "true",
+            "com.docker.compose.service": "demo-api",
+            "com.docker.compose.project": "self-healing-agent",
+        },
+    )
+    adapter = DockerExecutionAdapter(
+        session_factory=session_factory, docker_client=FakeDockerClient({cid: container})
+    )
+    async with unit_of_work(session_factory, actor="test:change-mode") as repo:
+        await repo.update_automation_controls(
+            mode="APPROVAL_REQUIRED", reason="Require a human after plan evaluation"
+        )
+    with pytest.raises(PrecheckFailedError, match="requires approval"):
+        await adapter.precheck(ctx["intent"])
+    assert container.restart_call_count == 0
+
+
 # Test 1: Restart a labeled disposable target; reject an unlabeled target
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio

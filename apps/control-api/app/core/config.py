@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     REDIS_URL: RedisDsn = RedisDsn("redis://localhost:6379/0")
     CHROMA_HOST: str = "localhost"
     CHROMA_PORT: int = 8000
+    PROMETHEUS_URL: str = "http://localhost:9090"
+    FAULT_INJECTOR_URL: str = "http://localhost:8003"
+    FAULT_INJECTOR_SECRET: str = "injector-secret-token"
+    DEMO_CONTROLS_ENABLED: bool = False
 
     # Phase 5 & M1-B: Webhook Secrets and Ingestion Settings
     ALERTMANAGER_WEBHOOK_SECRET: str = "alertmanager-secret-token"
@@ -39,6 +43,8 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
     ]
 
     @field_validator("LOG_LEVEL")

@@ -36,11 +36,6 @@ async def verify_node(
     - On failure, schedules 600-second cooldown and transitions to DIAGNOSED if retry budget remains.
     - If retries are exhausted or fault was cleared externally, transitions safely to ESCALATED.
     """
-    if verifier is None:
-        from agentcore.verification.verifier import IndependentVerifier
-
-        verifier = IndependentVerifier()
-
     incident_id_str = state.get("incident_id")
     if not incident_id_str:
         return {"status": "VERIFIED", "verification_passed": False, "retry_eligible": False}
@@ -64,6 +59,67 @@ async def verify_node(
 
     execution_id = UUID(str(execution_id_raw or incident_id_str))
 
+    if verifier is None:
+        import asyncio
+        import os
+
+        import httpx
+        from app.db.models import Resource, VerificationObservation
+        from provideradapters.docker.client import DockerClientWrapper
+
+        from agentcore.verification.evaluator import TelemetryEvaluator
+        from agentcore.verification.verifier import IndependentVerifier
+
+        docker = DockerClientWrapper()
+
+        async def observe_container():
+            target = state.get("target_container_id") or state.get("container_id")
+            if not target or session_factory is None:
+                return None, None
+            attrs = await asyncio.to_thread(docker.inspect_container, target)
+            async with session_factory() as db:
+                resource = await db.get(Resource, resource_id)
+                labels = resource.labels if resource else {}
+            current_id = labels.get("docker_container_id") or labels.get("container_id")
+            observed_id = attrs.get("Id") if current_id == target else current_id
+            started = attrs.get("State", {}).get("StartedAt")
+            started_at = datetime.fromisoformat(started.replace("Z", "+00:00")) if started else None
+            return {
+                "container_id": observed_id,
+                "binding_generation": labels.get("binding_generation"),
+                "status": attrs.get("State", {}).get("Status", "unknown"),
+            }, started_at
+
+        async def observe_fault(scenario):
+            async with httpx.AsyncClient(timeout=5) as client:
+                response = await client.get(
+                    f"{os.getenv('FAULT_INJECTOR_URL', 'http://localhost:8003')}/faults/{scenario}/status",
+                    headers={
+                        "X-Fault-Token": os.getenv("FAULT_INJECTOR_SECRET", "injector-secret-token")
+                    },
+                )
+                response.raise_for_status()
+                return response.json()
+
+        async def publish_sample(payload):
+            if session_factory is not None and execution_id_raw:
+                async with unit_of_work(session_factory, actor=actor) as repo:
+                    repo.session.add(
+                        VerificationObservation(
+                            incident_id=incident_id, execution_id=execution_id, payload=payload
+                        )
+                    )
+
+        verifier = IndependentVerifier(
+            evaluator=TelemetryEvaluator(
+                demo_api_base_url=os.getenv("DEMO_API_URL", "http://localhost:8001")
+            ),
+            on_sample=publish_sample,
+            container_state_provider=observe_container,
+            fault_status_provider=observe_fault,
+            fault_status_required=True,
+        )
+
     target_container_id = state.get("target_container_id") or state.get("container_id")
     binding_generation = state.get("binding_generation")
     cause_to_scenario = {
@@ -72,12 +128,18 @@ async def verify_node(
         "API_UNRESPONSIVE": "SCN-003",
     }
     rc = state.get("root_cause")
-    scenario_id = (
-        state.get("scenario_id")
-        or state.get("verification_profile")
-        or (cause_to_scenario.get(rc) if rc else None)
-        or rc
-    )
+    # Older plans use a generic verification-profile name. That is not a fault
+    # scenario ID and must never be sent to the injector's attribution endpoint.
+    valid_scenarios = set(cause_to_scenario.values())
+    candidate = state.get("scenario_id") or state.get("verification_profile")
+    if candidate in valid_scenarios:
+        scenario_id = candidate
+    elif rc in cause_to_scenario:
+        scenario_id = cause_to_scenario[rc]
+    elif rc in valid_scenarios:
+        scenario_id = rc
+    else:
+        scenario_id = None
 
     # 1. Execute Independent Telemetry Verification
     verdict_dict = await verifier.verify(

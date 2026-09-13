@@ -10,6 +10,7 @@ from app.services.auth import (
     SESSION_COOKIE_NAME,
     SessionService,
     get_current_session_and_user,
+    require_csrf,
 )
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
@@ -101,7 +102,7 @@ async def login(
         )
 
 
-@router.post("/logout")
+@router.post("/logout", dependencies=[Depends(require_csrf)])
 async def logout(
     response: Response,
     auth: Annotated[tuple[User, UserSession], Depends(get_current_session_and_user)],

@@ -28,6 +28,11 @@ dist/
 .coverage
 htmlcov/
 .mypy_cache/
+node_modules/
+.next/
+*.tsbuildinfo
+playwright-report/
+test-results/
 
 # Local Database & Storage Volumes
 postgres_data/

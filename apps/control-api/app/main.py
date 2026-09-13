@@ -6,6 +6,7 @@ from typing import Any
 from app.api.approvals import router as approvals_router
 from app.api.auth import router as auth_router
 from app.api.automation import router as automation_router
+from app.api.console import router as console_router
 from app.api.events import router as events_router
 from app.api.health import router as health_router
 from app.api.system import router as system_router
@@ -66,6 +67,16 @@ app.include_router(system_router, prefix="")
 app.include_router(auth_router, prefix="")
 app.include_router(approvals_router, prefix="")
 app.include_router(automation_router, prefix="")
+app.include_router(console_router)
+
+
+@app.middleware("http")
+async def private_console_responses(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/v1/console"):
+        response.headers["Cache-Control"] = "no-store, private"
+        response.headers["Vary"] = "Cookie"
+    return response
 
 
 @app.get("/metrics")

@@ -31,6 +31,7 @@ async def collect_evidence_node(
         )
         return {"status": "EVIDENCE_COLLECTED"}
 
+    discover_live_binding = collector is None
     if collector is None:
         collector = EvidenceCollector()
 
@@ -52,7 +53,9 @@ async def collect_evidence_node(
                 cid = labels.get("docker_container_id") or labels.get("container_id")
                 gen = labels.get("binding_generation", 1)
 
-                if not cid:
+                # Compose rebuilds replace container IDs. Refresh before collecting a
+                # new incident's evidence, then freeze that binding into its plan.
+                if not cid or discover_live_binding:
                     try:
                         from app.services.discovery.docker import DockerResourceDiscovery
 

@@ -335,8 +335,13 @@ class TelemetryEvaluator:
         max_5xx_rate = traffic_cfg.get("max_5xx_error_rate")
 
         # Query total business requests rate
-        total_query = 'sum(rate(demo_api_http_requests_total{job="demo-api",route="/jobs"}[1m]))'
-        error_query = 'sum(rate(demo_api_http_requests_total{job="demo-api",route="/jobs",status=~"5.."}[1m]))'
+        total_query = 'sum(rate(demo_api_http_requests_total{job="demo-api",endpoint="/jobs"}[1m]))'
+        # No 5xx series is normal for a healthy process. Infer zero only when
+        # the same workload's total request series is actually present.
+        error_query = (
+            'sum(rate(demo_api_http_requests_total{job="demo-api",endpoint="/jobs",status=~"5.."}[1m]))'
+            f" or ({total_query} * 0)"
+        )
 
         try:
             total_res = await self.prometheus_client.query_instant(total_query)
@@ -496,7 +501,7 @@ class TelemetryEvaluator:
                 reason=counter_reason,
             )
 
-        query = 'histogram_quantile(0.95, sum(rate(demo_api_http_request_duration_seconds_bucket{job="demo-api",route="/jobs"}[1m])) by (le))'
+        query = 'histogram_quantile(0.95, sum(rate(demo_api_http_request_duration_seconds_bucket{job="demo-api",endpoint="/jobs"}[1m])) by (le))'
 
         try:
             res = await self.prometheus_client.query_instant(query)

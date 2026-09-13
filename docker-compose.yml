@@ -19,6 +19,18 @@ x-logging: &default-logging
     labels: "com.docker.compose.project,com.docker.compose.service"
 
 services:
+  dashboard:
+    build:
+      context: apps/dashboard
+    container_name: self-healing-dashboard
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      - control-plane
+    networks:
+      - self-healing-net
+
   postgres:
     logging: *default-logging
     image: postgres:16-alpine
@@ -102,10 +114,17 @@ services:
       - DATABASE_URL=postgresql+asyncpg://control_app:local-control-app@postgres:5432/control_plane
       - MIGRATION_DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/control_plane
       - CONTROL_APP_PASSWORD=local-control-app
+      - PROMETHEUS_URL=http://prometheus:9090
+      - FAULT_INJECTOR_URL=http://fault-injector:8000
+      - FAULT_INJECTOR_SECRET=${FAULT_INJECTOR_SECRET:-injector-secret-token}
+      - DEMO_CONTROLS_ENABLED=true
     depends_on:
-      - postgres
-      - redis
-      - chromadb
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
     networks:
       - self-healing-net
 
@@ -120,6 +139,8 @@ services:
       - DATABASE_URL=postgresql+asyncpg://control_app:local-control-app@postgres:5432/control_plane
       - REDIS_URL=redis://redis:6379/0
       - WORKER_ID=worker-compose-1
+      - FAULT_INJECTOR_URL=http://fault-injector:8000
+      - FAULT_INJECTOR_SECRET=${FAULT_INJECTOR_SECRET:-injector-secret-token}
       - LOG_LEVEL=INFO
       - PROMETHEUS_URL=http://prometheus:9090
       - LOKI_URL=http://loki:3100
@@ -145,8 +166,10 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - self-healing-net
 
@@ -162,7 +185,8 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - self-healing-net
 
@@ -190,7 +214,7 @@ services:
     ports:
       - "8003:8000"
     environment:
-      - FAULT_INJECTOR_SECRET=injector-secret-token
+      - FAULT_INJECTOR_SECRET=${FAULT_INJECTOR_SECRET:-injector-secret-token}
       - DEMO_API_URL=http://demo-api:8000
       - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/demo

@@ -93,6 +93,9 @@ class FakeDockerClient:
 async def setup_test_resource(session_factory, cid: str, service: str = "demo-api") -> Resource:
     res_id = None
     async with unit_of_work(session_factory, actor="test:setup") as repo:
+        await repo.update_automation_controls(
+            mode="AUTOMATIC", reason="Lifecycle test automatic setup"
+        )
         res = await repo.session.scalar(
             sa.select(Resource).where(Resource.name == service).limit(1)
         )

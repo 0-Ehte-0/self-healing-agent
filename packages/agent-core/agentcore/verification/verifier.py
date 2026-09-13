@@ -38,11 +38,17 @@ class IndependentVerifier(VerifierProtocol):
         clock_fn: Callable[[], datetime] | None = None,
         sleep_fn: Callable[[float], Any] | None = None,
         fault_status_provider: Callable[[str], Any] | None = None,
+        on_sample: Callable[[dict[str, Any]], Any] | None = None,
+        container_state_provider: Callable[[], Any] | None = None,
+        fault_status_required: bool = False,
     ):
         self.evaluator = evaluator or TelemetryEvaluator()
         self.clock_fn = clock_fn or (lambda: datetime.now(UTC))
         self.sleep_fn = sleep_fn or asyncio.sleep
         self.fault_status_provider = fault_status_provider
+        self.on_sample = on_sample
+        self.container_state_provider = container_state_provider
+        self.fault_status_required = fault_status_required
 
     async def verify(
         self,
@@ -126,6 +132,12 @@ class IndependentVerifier(VerifierProtocol):
                 break
 
             # Evaluate current sample
+            if self.container_state_provider:
+                try:
+                    container_state, container_started_at = await self.container_state_provider()
+                except Exception:
+                    logger.exception("Live container observation failed")
+                    container_state, container_started_at = None, None
             sample = await self.evaluator.evaluate_sample(
                 profile=verif_profile,
                 sample_index=sample_index,
@@ -137,6 +149,11 @@ class IndependentVerifier(VerifierProtocol):
                 container_started_at=container_started_at,
             )
             samples.append(sample)
+            if self.on_sample:
+                try:
+                    await self.on_sample(sample.model_dump(mode="json"))
+                except Exception:
+                    logger.exception("Could not publish preliminary verification observation")
             readiness_consecutive_successes = sample.readiness_consecutive_successes
 
             # Phase 1: Readiness Prerequisite Warm-up (3 consecutive HTTP 200s < 200ms)
@@ -263,5 +280,7 @@ class IndependentVerifier(VerifierProtocol):
                         return f"Fault status is '{st}' (cleared_at={cleared_at})"
             except Exception as exc:
                 logger.warning(f"Error checking fault status provider: {exc}")
+                if self.fault_status_required:
+                    return "Fault attribution unavailable; recovery cannot be confirmed"
 
         return None

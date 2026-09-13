@@ -250,6 +250,25 @@ class ControlPlaneRepository:
             .on_conflict_do_nothing()
         )
 
+    async def require_incident_approval(self, incident_id: UUID, expected_version: int) -> Incident:
+        """Enable approval routing with a versioned write before leaving PLANNED."""
+        result = await self.session.execute(
+            sa.update(Incident)
+            .where(
+                Incident.id == incident_id,
+                Incident.version == expected_version,
+                Incident.state == IncidentState.PLANNED,
+                Incident.approval_required.is_(False),
+            )
+            .values(approval_required=True, version=expected_version + 1)
+            .returning(Incident)
+            .execution_options(populate_existing=True)
+        )
+        incident = result.scalar_one_or_none()
+        if incident is None:
+            raise ConflictError("Incident changed before approval routing was enabled")
+        return incident
+
     async def transition(
         self, incident_id: UUID, expected_version: int, target: IncidentState
     ) -> Incident:
@@ -1047,7 +1066,6 @@ class ControlPlaneRepository:
             ip_address=ip_address,
             user_agent=user_agent,
             is_revoked=False,
-            actor=self.actor,
         )
         self.session.add(session_record)
         await self.session.flush()

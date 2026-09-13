@@ -25,5 +25,5 @@ inhibit_rules:
   - source_match:
       alertname: "ContainerDown"
     target_match_re:
-      alertname: "ApiUnresponsive|HighHttpErrorRate|ApiHighLatency"
-    equal: ["scenario_id"]
+      alertname: "ApiUnresponsive|HighHttpErrorRate|ApiHighLatency|ApplicationLivenessFailed"
+    equal: ["service"]
